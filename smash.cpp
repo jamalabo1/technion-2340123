@@ -12,8 +12,11 @@ int main(int argc, char *argv[]) {
 
 
     SmallShell &smash = SmallShell::getInstance();
+
+    WorkingEnvironment& env = smash.get_wenv();
     while (true) {
-        std::cout << "smash> ";
+        // std::cout << "smash> ";
+        std::cout << env.getTerminalName() << "> ";
         std::string cmd_line;
         std::getline(std::cin, cmd_line);
         smash.executeCommand(cmd_line.c_str());

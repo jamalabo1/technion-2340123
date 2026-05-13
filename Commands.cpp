@@ -104,13 +104,28 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
       return new ExternalCommand(cmd_line);
     }
     */
+    string cmd_s = _trim(string(cmd_line));
+    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+
+    Parameters *params = new Parameters();
+
+    CommandCtx ctx(
+        cmd_s,
+        wenv,
+        params
+    );
+
+    if (firstWord.compare("chprompt") == 0) {
+        return new ChangeTerminalNameCommand(ctx);
+    }
+
     return nullptr;
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
     // for example:
-    // Command* cmd = CreateCommand(cmd_line);
-    // cmd->execute();
+    Command *cmd = CreateCommand(cmd_line);
+    cmd->execute();
     // Please note that you must fork smash process for some commands (e.g., external commands....)
 }

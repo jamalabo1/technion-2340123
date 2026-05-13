@@ -1,0 +1,28 @@
+//
+// Created by Jamal Abo Mokh on 13/05/2026.
+//
+
+#ifndef WENV_H
+#define WENV_H
+
+#include <string>
+
+// working env, separated from the smash instance to enable it's sharing along other objects in the program if needed
+class WorkingEnvironment {
+private:
+    // default value
+    std::string terminalName;
+
+public:
+    WorkingEnvironment(const std::string& terminalName) : terminalName(terminalName) {
+
+    }
+
+    std::string getTerminalName();
+
+    void setTerminalName(const std::string& terminalName);
+};
+
+
+
+#endif //WENV_H
