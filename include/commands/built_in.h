@@ -8,7 +8,7 @@
 #include "command.h"
 #include "context.h"
 #include "job_table.h"
-
+#include "exceptions.h"
 
 class BuiltInCommand : public Command {
 public:
@@ -19,12 +19,8 @@ public:
 };
 
 
-class ChangeTerminalNameCommand : public BuiltInCommand {
-public:
-    ChangeTerminalNameCommand(const CommandCtx& ctx) : BuiltInCommand(ctx) {};
-
-    void execute() override;
-};
+// ChangeTerminalNameCommand
+DEFINE_COMMAND("chprompt", ChangeTerminalNameCommand, BuiltInCommand);
 
 
 class ChangeDirCommand : public BuiltInCommand {
@@ -39,7 +35,7 @@ class ChangeDirCommand : public BuiltInCommand {
 
 class GetCurrDirCommand : public BuiltInCommand {
 public:
-    GetCurrDirCommand(const CommandCtx& ctx);
+     GetCurrDirCommand(const CommandCtx& ctx);
 
     virtual ~GetCurrDirCommand() {
     }

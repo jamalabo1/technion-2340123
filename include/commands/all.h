@@ -65,7 +65,7 @@ public:
 class USBInfoCommand : public Command {
     // TODO: Add your data members **BONUS: 10 Points**
 public:
-    USBInfoCommand(const std::string& cmd_line);
+    USBInfoCommand(const char* cmd_line);
 
     virtual ~USBInfoCommand() {
     }

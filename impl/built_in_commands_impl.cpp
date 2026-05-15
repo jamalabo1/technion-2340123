@@ -7,7 +7,7 @@ void ChangeTerminalNameCommand::execute() {
     // take the ref of the working env
     auto& wenv = ctx.get_wenv();
 
-    auto termName = ctx.get_params()->single<std::exception>();
+    auto termName = ctx.get_params()->single<CommandInvalidArguments>();
 
     wenv.setTerminalName(termName);
 }

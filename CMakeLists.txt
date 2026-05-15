@@ -20,6 +20,8 @@ add_executable(skeleton_smash
         impl/wenv.cpp
         include/parameters.h
         impl/ctx.cpp
+        impl/commands.cpp
+        include/exceptions.h
 )
 
 

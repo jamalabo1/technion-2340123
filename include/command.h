@@ -20,9 +20,20 @@ public:
 
     virtual void execute() = 0;
 
+    virtual CommandCtx& get_ctx() {
+        return ctx;
+    }
+
     //virtual void prepare();
     //virtual void cleanup();
     // TODO: Add your extra methods if needed
+};
+
+#define DEFINE_COMMAND(command_id, CMD, type) class CMD : public type {\
+public: \
+    explicit CMD(const CommandCtx& ctx) : type(ctx) { \
+    }\
+    void execute() override; \
 };
 
 

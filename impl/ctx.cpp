@@ -11,3 +11,10 @@ Parameters * CommandCtx::get_params() const {
     return params;
 }
 
+std::string CommandCtx::get_cmdName() const {
+    return commandName;
+}
+
+std::string CommandCtx::get_cmdId() const {
+    return commandId;
+}

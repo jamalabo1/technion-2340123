@@ -7,6 +7,8 @@
 #include <iomanip>
 #include "Commands.h"
 
+#include <regex>
+
 using namespace std;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
@@ -34,6 +36,30 @@ string _rtrim(const std::string &s) {
 
 string _trim(const std::string &s) {
     return _rtrim(_ltrim(s));
+}
+
+std::vector<std::string> _split(const std::string& param) {
+    std::regex regexz(" ");
+    std::vector<std::string> list(
+        std::sregex_token_iterator(
+        param.begin(),
+        param.end(), regexz, -1
+        ),
+        std::sregex_token_iterator()
+    );
+
+    std::vector<string> result;
+    // normalize and filter
+    // TODO: must preserve order
+    for (auto& basic_string : list) {
+        basic_string = _trim(basic_string);
+        if (!basic_string.empty()) {
+            result.push_back(basic_string);
+        }
+    }
+
+
+    return result;
 }
 
 int _parseCommandLine(const char *cmd_line, char **args) {
@@ -107,10 +133,31 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
     string cmd_s = _trim(string(cmd_line));
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-    Parameters *params = new Parameters();
+//     string paramsRaw = cmd_s.substr(
+// //TODO: change to end of the first occur instead (can fail on chprompt chprompt!!)
+//     cmd_s.find_last_of(firstWord) + 1
+//     );
+
+    size_t firstSpace = cmd_s.find_first_of(" \t");
+    string paramsRaw;
+    if (firstSpace != string::npos) {
+        // Substr from char after space to end
+        paramsRaw = cmd_s.substr(firstSpace + 1);
+    } else {
+        // No arguments, only command
+        paramsRaw = "";
+    }
+
+    std::vector<std::string> paramsList = _split(paramsRaw);
+
+    Parameters *params = new Parameters(
+paramsRaw,
+paramsList
+    );
 
     CommandCtx ctx(
         cmd_s,
+        firstWord,
         wenv,
         params
     );
@@ -126,6 +173,16 @@ void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
     // for example:
     Command *cmd = CreateCommand(cmd_line);
-    cmd->execute();
+
+    try {
+        cmd->execute();
+    } catch (const std::exception &e) {
+        CommandCtx& ctx = cmd->get_ctx();
+
+        string terminalName = ctx.get_wenv().getTerminalName();
+
+        std::cerr << terminalName << " error: " <<  ctx.get_cmdId() << ":" << e.what() << std::endl;
+    }
+
     // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
