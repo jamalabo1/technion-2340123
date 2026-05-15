@@ -8,21 +8,29 @@
 #include <string>
 
 // working env, separated from the smash instance to enable it's sharing along other objects in the program if needed
-class WorkingEnvironment {
+class WorkingEnvironment
+{
 private:
-    // default value
     std::string terminalName;
+    // default value
+    std::string appName;
+
+    std::string lastWorkingDir;
 
 public:
-    WorkingEnvironment(const std::string& terminalName) : terminalName(terminalName) {
-
+    WorkingEnvironment(const std::string& appName) :
+        terminalName(appName),
+        appName(appName)
+    {
     }
 
     std::string getTerminalName();
-
     void setTerminalName(const std::string& terminalName);
-};
+    // resets terminal name into the app name
+    void resetTerminalName();
 
+    std::string getAppName() const;
+};
 
 
 #endif //WENV_H

@@ -2,7 +2,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include "Commands.h"
+
+#include "shell.h"
+
 #include "signals.h"
 
 int main(int argc, char *argv[]) {
@@ -13,13 +15,13 @@ int main(int argc, char *argv[]) {
 
     SmallShell &smash = SmallShell::getInstance();
 
-    WorkingEnvironment& env = smash.get_wenv();
+    std::shared_ptr<WorkingEnvironment> env = smash.get_wenv();
     while (true) {
-        // std::cout << "smash> ";
-        std::cout << env.getTerminalName() << "> ";
+        std::cout << env->getTerminalName() << "> ";
         std::string cmd_line;
         std::getline(std::cin, cmd_line);
         smash.executeCommand(cmd_line.c_str());
     }
+
     return 0;
 }

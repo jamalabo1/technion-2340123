@@ -4,37 +4,49 @@
 
 #ifndef COMMAND_H
 #define COMMAND_H
+
 #include <utility>
 
 #include "context.h"
+#include "command_proc.h"
 
-class Command {
+
+class Command
+{
     // TODO: Add your data members
 protected:
+    //ctx
     CommandCtx ctx;
 
-public:
-    explicit Command(CommandCtx ctx): ctx(std::move(ctx)) {};
+    // running proc of this command
+    CommandProc* proc;
 
-    virtual ~Command(){};
+    const Parameters* params() const
+    {
+        return ctx.get_params();
+    }
+
+public:
+    explicit Command(CommandCtx& ctx): ctx(ctx)
+    {
+    };
+
+    virtual ~Command()
+    {
+    };
 
     virtual void execute() = 0;
 
-    virtual CommandCtx& get_ctx() {
+    virtual CommandCtx& get_ctx()
+    {
         return ctx;
     }
+
+    CommandProc* get_proc();
 
     //virtual void prepare();
     //virtual void cleanup();
     // TODO: Add your extra methods if needed
 };
-
-#define DEFINE_COMMAND(command_id, CMD, type) class CMD : public type {\
-public: \
-    explicit CMD(const CommandCtx& ctx) : type(ctx) { \
-    }\
-    void execute() override; \
-};
-
 
 #endif //COMMAND_H

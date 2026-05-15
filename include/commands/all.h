@@ -9,15 +9,7 @@
 #include "built_in.h"
 
 
-class ExternalCommand : public Command {
-public:
-    ExternalCommand(const std::string& cmd_line);
 
-    virtual ~ExternalCommand() {
-    }
-
-    void execute() override;
-};
 
 
 class RedirectionCommand : public Command {

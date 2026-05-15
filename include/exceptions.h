@@ -7,9 +7,20 @@
 
 #include <stdexcept>
 
-class CommandInvalidArguments : public std::invalid_argument {
+class CommandInvalidArguments : public std::invalid_argument
+{
 public:
-    CommandInvalidArguments(): std::invalid_argument("invalid arguments") {}
+    CommandInvalidArguments(): std::invalid_argument("invalid arguments")
+    {
+    }
+};
+
+class SyscallException : public std::runtime_error
+{
+public:
+    SyscallException(std::string syscallName): std::runtime_error(syscallName)
+    {
+    }
 };
 
 #endif //EXCEPTIONS_H

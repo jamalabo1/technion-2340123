@@ -6,14 +6,23 @@
 #define CONTEXT_H
 
 #include <utility>
-#include <vector>
+#include <memory>
 #include <string>
 
 #include "parameters.h"
+#include "services.h"
 #include "wenv.h"
 
+
 // command context (instead of drilling the params, and to allow future expansion)
-class CommandCtx {
+class CommandCtx
+{
+public:
+    struct CommandFlags
+    {
+        bool isBackground;
+    };
+
 private:
     std::string commandName;
     std::string commandId;
@@ -23,25 +32,44 @@ private:
     // could be of different type based on the command.
     Parameters* params;
 
-    WorkingEnvironment& wenv;
+    // shared objs
+    std::shared_ptr<WorkingEnvironment> wenv;
+
+    // flags
+    CommandFlags flags;
+
+    // services
+    std::shared_ptr<Services> services;
 
 public:
     CommandCtx(
         std::string cmd_line,
         std::string cmd_id,
-        WorkingEnvironment &wenv,
-        Parameters* params
-        )
-        : cmd_line(std::move(cmd_line)),
-    commandId(cmd_id),
+        const std::shared_ptr<WorkingEnvironment>& wenv,
+        Parameters* params,
+        CommandFlags flags,
+        const std::shared_ptr<Services>& services
+    )
+        : commandId(std::move(cmd_id)),
+          cmd_line(std::move(cmd_line)),
           params(params),
-        wenv(wenv) {
+          wenv(wenv),
+          flags(flags),
+    services(services)
+    {
     }
 
-    WorkingEnvironment& get_wenv() const;
+    std::shared_ptr<WorkingEnvironment> get_wenv() const;
     Parameters* get_params() const;
     std::string get_cmdName() const;
     std::string get_cmdId() const;
+
+    CommandFlags get_flags() const;
+
+    std::string get_cmdLine() const;
+
+    std::shared_ptr<Services> get_services() const;
+
 };
 
 #endif //CONTEXT_H

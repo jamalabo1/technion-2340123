@@ -1,0 +1,52 @@
+//
+// Created by jamal on 15/05/2026.
+//
+
+#ifndef COMMAND_FACTORY_H
+#define COMMAND_FACTORY_H
+
+#include "command.h"
+
+#include <map>
+#include <functional>
+
+class CommandFactory
+{
+private:
+    using FactoryInstanceCreatorType = std::function<Command*(CommandCtx)>;
+
+    std::map<std::string, FactoryInstanceCreatorType> table;
+
+public:
+    CommandFactory()
+    {
+    };
+
+    Command* create(
+        std::string key,
+        CommandCtx ctx
+    )
+    {
+        if (table.find(key) == table.end())
+        {
+            return nullptr;
+        }
+
+        //TODO: maybe improve the copy?
+        return table[key](std::move(ctx));
+    }
+
+    void registerCommand(const std::string& id, FactoryInstanceCreatorType func)
+    {
+        table[id] = std::move(func);
+    }
+
+    static std::shared_ptr<CommandFactory> getInstance()
+    {
+        static std::shared_ptr<CommandFactory> instance = std::make_shared<CommandFactory>();
+
+        return instance;
+    }
+};
+
+#endif //COMMAND_FACTORY_H
