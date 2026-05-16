@@ -22,46 +22,41 @@ public:
 public:
     JobTable();
 
-    ~JobTable()
-    {
-    };
+    // ~JobTable()
+    // {
+    // };
 
     void addJob(
-        std::string cmd_line,
+        const std::string& cmd_line,
         CommandProc* cmd
     );
 
     void printJobsList();
 
-    void killAllJobs()
-    {
-    };
+    // void killAllJobs()
+    // {
+    // };
 
     void removeFinishedJobs();
 
-    JobEntry* getJobById(int jobId)
-    {
-    };
+    // JobEntry* getJobById(int jobId)
+    // {
+    // };
 
-    void removeJobById(int jobId)
-    {
-        // TODO: use a smarted data structure
-        jobs.erase(
-            std::remove_if(
-                jobs.begin(), jobs.end(), [jobId](JobEntry& entry)
-                {
-                    return entry.get_id() == jobId;
-                }),
-            jobs.end());
-    };
+    void removeJobById(int jobId);
 
-    JobEntry* getLastJob(int* lastJobId)
-    {
-    };
 
-    std::shared_ptr<JobEntry> getLastStoppedJob(int* jobId)
-    {
-    };
+    JobEntry* get_maxIdJob();
+    JobEntry* get_jobById(int jobId);
+
+
+    void killAndRemoveAllJobs();
+
+    //
+    // JobEntry* getLastJob(int* lastJobId);
+    //
+    // std::shared_ptr<JobEntry> getLastStoppedJob(int* jobId);
+    //
     // TODO: Add extra methods or modify exisitng ones as needed
 };
 

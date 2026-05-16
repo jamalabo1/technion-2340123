@@ -17,6 +17,11 @@ private:
 
     std::map<std::string, FactoryInstanceCreatorType> table;
 
+    bool _containsCommand(const std::string& key)
+    {
+        return table.find(key) != table.end();
+    }
+
 public:
     CommandFactory()
     {
@@ -39,6 +44,12 @@ public:
     void registerCommand(const std::string& id, FactoryInstanceCreatorType func)
     {
         table[id] = std::move(func);
+    }
+
+
+    static bool containsCommand(const std::string& key)
+    {
+        return getInstance()->_containsCommand(key);
     }
 
     static std::shared_ptr<CommandFactory> getInstance()

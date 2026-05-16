@@ -9,6 +9,10 @@ class CommandProc
 {
 public:
     int pId;
+
+    int assignedJobId = -1;
+
+    bool wasKilled = false;
 };
 
 

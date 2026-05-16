@@ -24,6 +24,45 @@ public:
 // ChangeTerminalNameCommand
 DEFINE_COMMAND("chprompt", ChangeTerminalNameCommand, BuiltInCommand);
 
+// Quit Command
+DEFINE_COMMAND("quit", QuitCommand, BuiltInCommand);
+
+
+// kill proc command
+class KillCommand : public BuiltInCommand
+{
+    DEFAULT_COMMAND_HELPER("kill", KillCommand, BuiltInCommand)
+
+private:
+    int sigNum = -1;
+    int jobId = -1;
+
+public:
+    void execute() override;
+
+    void prepare() override;
+};
+
+
+// jobs command
+DEFINE_COMMAND("jobs", JobsCommand, BuiltInCommand);
+
+// Alias proc command
+class AliasCommand : public BuiltInCommand
+{
+    DEFAULT_COMMAND_HELPER("alias", AliasCommand, BuiltInCommand)
+
+private:
+    bool listAll;
+    std::string alias;
+    std::string command;
+
+public:
+    void execute() override;
+
+    void prepare() override;
+};
+
 
 class ChangeDirCommand : public BuiltInCommand
 {
@@ -61,62 +100,21 @@ public:
     void execute() override;
 };
 
-class QuitCommand : public BuiltInCommand
-{
-    // TODO: Add your data members public:
-    QuitCommand(const CommandCtx& ctx);
 
-    virtual ~QuitCommand()
-    {
-    }
-
-    void execute() override;
-};
-
-
-
-DEFINE_COMMAND("jobs", JobsCommand, BuiltInCommand);
-
-
-
-
-class KillCommand : public BuiltInCommand
-{
-    // TODO: Add your data members
-public:
-    KillCommand(const CommandCtx& ctx);
-
-    virtual ~KillCommand()
-    {
-    }
-
-    void execute() override;
-};
-
+// bring to fg command
 class ForegroundCommand : public BuiltInCommand
 {
-    // TODO: Add your data members
+    DEFAULT_COMMAND_HELPER("fg", ForegroundCommand, BuiltInCommand)
+
+private:
+    int jobId = -1;
+
 public:
-    ForegroundCommand(const CommandCtx& ctx);
-
-    virtual ~ForegroundCommand()
-    {
-    }
-
     void execute() override;
+
+    void prepare() override;
 };
 
-class AliasCommand : public BuiltInCommand
-{
-public:
-    AliasCommand(const CommandCtx& ctx);
-
-    virtual ~AliasCommand()
-    {
-    }
-
-    void execute() override;
-};
 
 class UnAliasCommand : public BuiltInCommand
 {

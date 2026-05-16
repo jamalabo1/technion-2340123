@@ -39,18 +39,20 @@ void ExternalCommand::execute()
             throw SyscallException("fork");
         }
 
-        // if background then don't wait
-        if (ctx.get_flags().isBackground)
+        // always create command proc for running children ( so that signals can be forwarded )
+        proc = new CommandProc();
+        proc->pId = pid;
+
+        // TODO: ideally it would be better if we redirect this logic into a concrete fg command, but first, we don't have access to the job from command
+        // and second, it's going the extra mile for saving 2 line (if were not for compactness i would've done it)
+
+        if (!ctx.get_flags().isBackground)
         {
-            //TODO: temp for testing
-            proc = new CommandProc();
-            proc->pId = pid;
+            auto proc_mng = ctx.get_services()->proc_management;
 
-            return;
+            // set the current process, since not bg then wait for it
+            proc_mng->setAndWaitFgProc(proc);
         }
-
-        // else wait for the child to finish like regular
-        waitpid(pid, NULL, 0);
     }
     else
     {
@@ -82,20 +84,12 @@ void ExternalCommand::execute()
         // must end in NULL
         argv.push_back(nullptr);
 
+        //TODO: here modify if using bash (only add two params and change cmdId_c)
+
         // args[0] is the path
         execvp(cmdId_c, argv.data());
 
         // if failed
         throw SyscallException("execvp");
     }
-
-
-    // if (isComplex)
-    // {
-    //     // run on bash
-    // }
-    // else
-    // {
-    //     // run on exec directly
-    // }
 }

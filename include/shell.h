@@ -45,7 +45,15 @@ public:
 
     void executeCommand(const char* cmd_line);
 
-    std::shared_ptr<WorkingEnvironment> get_wenv() { return wenv; }
+    std::string get_terminalName() const { return wenv->getTerminalName(); }
+
+    CommandProc* get_fg_proc() const { return services->proc_management->getFgProc(); }
+
+    void kill_fg_proc();
+
+    void forward_signal(int sigNum);
+
+    void print_terminalName();
 
     // TODO: add extra methods as needed
 };

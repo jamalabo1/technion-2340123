@@ -18,7 +18,7 @@ namespace Shell
 
         std::string _trim(const std::string& s);
 
-        std::vector<std::string> _split(const std::string& param);
+        std::vector<std::string> _split(const std::string& param, const std::string& delim = " ");
 
         int _parseCommandLine(const char* cmd_line, char** args);
 
@@ -31,6 +31,10 @@ namespace Shell
         std::string _command(const std::string& cmd_line);
 
         std::vector<std::string> _params(const std::string& trimmed);
+
+        void KillProc(int pId);
+
+        void SignalProc(int pId, int sigNum);
 
         short check_child(pid_t pid);
     }

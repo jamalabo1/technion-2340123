@@ -16,7 +16,8 @@
 
 using namespace std;
 
-namespace Shell {
+namespace Shell
+{
     namespace Utils
     {
         string _ltrim(const std::string& s)
@@ -36,9 +37,9 @@ namespace Shell {
             return _rtrim(_ltrim(s));
         }
 
-        std::vector<std::string> _split(const std::string& param)
+        std::vector<std::string> _split(const std::string& param, const std::string& delim)
         {
-            std::regex regexz(" ");
+            std::regex regexz(delim);
             std::vector<std::string> list(
                 std::sregex_token_iterator(
                     param.begin(),
@@ -106,11 +107,13 @@ namespace Shell {
             cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
         }
 
-        string _command(const string& cmd_line) {
+        string _command(const string& cmd_line)
+        {
             return cmd_line.substr(0, cmd_line.find_first_of(" \n"));
         }
 
-        vector<string> _params(const string& trimmed) {
+        vector<string> _params(const string& trimmed)
+        {
             size_t firstSpace = trimmed.find_first_of(" \t");
             string paramsRaw;
             if (firstSpace != string::npos)
@@ -124,6 +127,21 @@ namespace Shell {
                 paramsRaw = "";
             }
             return _split(paramsRaw);
+        }
+
+        void KillProc(int pId)
+        {
+            SignalProc(pId, SIGKILL);
+        }
+
+        void SignalProc(int pId, int sigNum)
+        {
+            // send kill signal to pid
+            int status = kill(pId, sigNum);
+            if (status == -1)
+            {
+                throw SyscallException("kill");
+            }
         }
 
         bool regex_contains(const std::string& str, const std::regex& regex)

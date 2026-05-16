@@ -13,10 +13,17 @@ class Parameters
 protected:
     std::vector<std::string> params;
 
+    static std::string DEFAULT_VALUE;
+
 public:
-    Parameters(const std::vector<std::string>& params)
-        :      params(params)
+    explicit Parameters(const std::vector<std::string>& params);
+
+    template <class ErrorType>
+    std::string singleOrDefault(const std::string& defValue = DEFAULT_VALUE) const
     {
+        if (params.empty()) return defValue;
+
+        return single<ErrorType>();
     }
 
     template <class ErrorType>
@@ -29,27 +36,13 @@ public:
         return params[0];
     }
 
-    std::string firstOrDefault() const
-    {
-        if (params.empty()) return "";
 
-        return params[0];
-    }
+    // first or default value
+    std::string firstOrDefault(const std::string& defValue = DEFAULT_VALUE) const;
 
-    std::vector<std::string> list() const
-    {
-        return params;
-    }
+    std::vector<std::string> list() const;
 
-    std::string concat() const
-    {
-        std::string concatenated;
-        for (const auto& param : params)
-        {
-            concatenated += param;
-        }
-        return concatenated;
-    }
+    std::string concat() const;
 };
 
 #endif //PARAMETERS_H

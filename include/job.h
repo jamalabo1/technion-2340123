@@ -5,6 +5,8 @@
 #ifndef JOB_H
 #define JOB_H
 
+#include <iostream>
+
 #include "string"
 
 
@@ -12,7 +14,6 @@
 
 class JobEntry
 {
-    // TODO: Add your data members
 private:
     CommandProc* proc;
 
@@ -42,9 +43,15 @@ public:
         return proc->pId;
     }
 
-    std::string get_cmdLine() const
+    CommandProc* get_proc() const
     {
-        return cmd_line;
+        return proc;
+    }
+
+    // print without endline
+    void printCmdLine() const
+    {
+        std::cout << cmd_line;
     }
 };
 #endif //JOB_H

@@ -19,22 +19,25 @@ add_executable(skeleton_smash
         impl/commands/built_in_commands_impl.cpp
         impl/commands/external_commands.cpp
 
+
         impl/wenv.cpp
-        include/parameters.h
         impl/ctx.cpp
         impl/command.cpp
-        include/exceptions.h
-        include/command_factory.h
-        include/shell.h
         impl/shell.cpp
         impl/utils.cpp
-        include/utils.h
-        include/defines.h
-        include/macros.h
-        include/commands/external.h
-        impl/job_table.cpp
-        include/services.h
-        include/command_proc.h
+        impl/parameters.cpp
+
+
+        impl/services/proc_mng.cpp
+        impl/services/aliases.cpp
+        impl/services/job_table.cpp
+
+
+        impl/commands/builtin/foreground.cpp
+        impl/commands/builtin/kill.cpp
+        impl/commands/builtin/alias.cpp
+
+
 )
 
 

@@ -8,12 +8,11 @@
 #include "command.h"
 #include "command_factory.h"
 
-#define DEFINE_COMMAND(command_id, CMD, type) class CMD : public type {\
-private: \
+#define FACTORY_REGISTER_HELPER(command_id, CMD) \
 class FactoryRegister \
     {\
-        public:\
-        FactoryRegister()\
+    public:\
+    FactoryRegister()\
         {\
             auto factory = CommandFactory::getInstance();\
             factory->registerCommand(command_id, []( CommandCtx ctx)\
@@ -22,11 +21,22 @@ class FactoryRegister \
             });\
         }\
     };\
-    static FactoryRegister factoryRegister;              \
+static FactoryRegister factoryRegister;
+
+#define DEFAULT_COMMAND_HELPER(command_id, CMD, type)\
+private:\
+    FACTORY_REGISTER_HELPER(command_id, CMD);\
+public:\
+    explicit CMD(CommandCtx& ctx) : type(ctx){}
+
+
+#define DEFINE_COMMAND(command_id, CMD, type) class CMD : public type {\
+private: \
+            FACTORY_REGISTER_HELPER(command_id, CMD)\
 public: \
-explicit CMD( CommandCtx& ctx) : type(ctx) { \
-}\
-void execute() override; \
+    explicit CMD( CommandCtx& ctx) : type(ctx) { \
+     } \
+    void execute() override; \
 };
 
 #define REGISTER_COMMAND(CMD) CMD::FactoryRegister CMD::factoryRegister{};

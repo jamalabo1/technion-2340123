@@ -11,7 +11,6 @@
 
 class Command
 {
-    // TODO: Add your data members
 protected:
     //ctx
     CommandCtx ctx;
@@ -42,7 +41,10 @@ public:
 
     CommandProc* get_proc();
 
-    //virtual void prepare();
+    virtual void prepare()
+    {
+        // for validations mainly
+    };
     //virtual void cleanup();
     // TODO: Add your extra methods if needed
 };
