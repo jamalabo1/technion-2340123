@@ -7,9 +7,7 @@
 
 #include "command.h"
 #include "built_in.h"
-
-
-
+#include "external.h"
 
 
 class RedirectionCommand : public Command {

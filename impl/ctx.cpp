@@ -11,10 +11,6 @@ Parameters * CommandCtx::get_params() const {
     return params;
 }
 
-std::string CommandCtx::get_cmdName() const {
-    return commandName;
-}
-
 std::string CommandCtx::get_cmdId() const {
     return commandId;
 }
@@ -22,11 +18,6 @@ std::string CommandCtx::get_cmdId() const {
 CommandCtx::CommandFlags CommandCtx::get_flags() const
 {
     return flags;
-}
-
-std::string CommandCtx::get_cmdLine() const
-{
-    return cmd_line;
 }
 
 std::shared_ptr<Services> CommandCtx::get_services() const

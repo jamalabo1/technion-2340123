@@ -9,12 +9,14 @@
 #include "utils.h"
 
 #include <cstring>
+#include <sstream>
 #include <sys/wait.h>
+
+#include "exceptions.h"
 
 using namespace std;
 
-namespace Shell
-{
+namespace Shell {
     namespace Utils
     {
         string _ltrim(const std::string& s)
@@ -104,6 +106,26 @@ namespace Shell
             cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
         }
 
+        string _command(const string& cmd_line) {
+            return cmd_line.substr(0, cmd_line.find_first_of(" \n"));
+        }
+
+        vector<string> _params(const string& trimmed) {
+            size_t firstSpace = trimmed.find_first_of(" \t");
+            string paramsRaw;
+            if (firstSpace != string::npos)
+            {
+                // Substr from char after space to end
+                paramsRaw = trimmed.substr(firstSpace + 1);
+            }
+            else
+            {
+                // No arguments, only command
+                paramsRaw = "";
+            }
+            return _split(paramsRaw);
+        }
+
         bool regex_contains(const std::string& str, const std::regex& regex)
         {
             return std::regex_match(str, regex);
@@ -112,7 +134,10 @@ namespace Shell
         short check_child(pid_t pid)
         {
             int status;
+
+
             auto result = waitpid(pid, &status, WNOHANG);
+
 
             if (result == 0)
             {
@@ -126,6 +151,8 @@ namespace Shell
             }
             else
             {
+                //TODO: check if actually error
+                throw SyscallException("waitpid");
                 // not relevant for tracking up to this point
                 return -1;
             }

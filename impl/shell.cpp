@@ -8,7 +8,6 @@
 
 #include "exceptions.h"
 #include "utils.h"
-#include "commands/external.h"
 
 using namespace std;
 using namespace Shell::Utils;
@@ -33,59 +32,73 @@ SmallShell::~SmallShell()
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
-Command* SmallShell::CreateCommand(const char* cmd_line)
-{
-    string cmd_s = _trim(string(cmd_line));
-    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-
-    size_t firstSpace = cmd_s.find_first_of(" \t");
-    string paramsRaw;
-    if (firstSpace != string::npos)
-    {
-        // Substr from char after space to end
-        paramsRaw = cmd_s.substr(firstSpace + 1);
-    }
-    else
-    {
-        // No arguments, only command
-        paramsRaw = "";
-    }
+Command* SmallShell::CreateCommand(const char* cmd_line) {
+    // string cmd_s = _trim(string(cmd_line));
+    // string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+    //
+    // size_t firstSpace = cmd_s.find_first_of(" \t");
+    // string paramsRaw;
+    // if (firstSpace != string::npos)
+    // {
+    //     // Substr from char after space to end
+    //     paramsRaw = cmd_s.substr(firstSpace + 1);
+    // }
+    // else
+    // {
+    //     // No arguments, only command
+    //     paramsRaw = "";
+    // }
 
     //TODO: use "tokenizer" to change aliases here.
 
-    std::vector<std::string> paramsList = _split(paramsRaw);
+    // std::vector<std::string> paramsList = _split(paramsRaw);
+    //
+    // bool isBg = false;
+    // //TODO: had it do it, but change this bullshit asap
+    // if (paramsList.size() > 0)
+    // {
+    //     isBg = paramsList[paramsList.size() - 1] == "&";
+    //
+    //     // and if i know it's bg them remove it our right from the list don't propagate
+    //     if (isBg)
+    //     {
+    //         paramsList.erase(paramsList.end() - 1);
+    //     }
+    // }
 
-    bool isBg = false;
-    //TODO: had it do it, but change this bullshit asap
-    if (paramsList.size() > 0)
-    {
-        isBg = paramsList[paramsList.size() - 1] == "&";
+    auto raw_cmd_line = const_cast<char*>(cmd_line);
 
-        // and if i know it's bg them remove it our right from the list don't propagate
-        if (isBg)
-        {
-            paramsList.erase(paramsList.end() - 1);
-        }
-    }
+    bool isBackground = _isBackgroundComamnd(cmd_line);
+
+    _removeBackgroundSign(
+               raw_cmd_line
+    );
+    string cmd_s = _trim(
+        string(
+       raw_cmd_line
+    )
+    );
+
+    string command = _command(cmd_s);
+
+    vector<string> paramsList = _params(cmd_s);
 
     auto* params = new Parameters(
-        paramsRaw,
         paramsList
     );
 
 
     CommandCtx ctx(
-        cmd_s,
-        firstWord,
+        command,
         wenv,
         params,
         CommandCtx::CommandFlags{
-            .isBackground = isBg
+            .isBackground = isBackground
         },
         services
     );
 
-    auto cmd = cmdFactory->create(firstWord, ctx);
+    auto cmd = cmdFactory->create(command, ctx);
     if (cmd == nullptr)
     {
         //then this is an external command.

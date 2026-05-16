@@ -5,8 +5,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include <utility>
-
 #include "context.h"
 #include "command_proc.h"
 

@@ -6,6 +6,7 @@
 #define EXCEPTIONS_H
 
 #include <stdexcept>
+#include <string>
 
 class CommandInvalidArguments : public std::invalid_argument
 {

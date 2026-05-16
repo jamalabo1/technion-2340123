@@ -24,10 +24,7 @@ public:
     };
 
 private:
-    std::string commandName;
     std::string commandId;
-
-    std::string cmd_line;
 
     // could be of different type based on the command.
     Parameters* params;
@@ -43,7 +40,6 @@ private:
 
 public:
     CommandCtx(
-        std::string cmd_line,
         std::string cmd_id,
         const std::shared_ptr<WorkingEnvironment>& wenv,
         Parameters* params,
@@ -51,7 +47,6 @@ public:
         const std::shared_ptr<Services>& services
     )
         : commandId(std::move(cmd_id)),
-          cmd_line(std::move(cmd_line)),
           params(params),
           wenv(wenv),
           flags(flags),

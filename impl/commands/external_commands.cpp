@@ -62,12 +62,15 @@ void ExternalCommand::execute()
 
 
         std::vector<char*> argv;
+
+        // +2 one for the null and one for the cmd
         argv.reserve(args.size() + 2);
 
         // the requested command
-        auto cmdId = const_cast<char*>(ctx.get_cmdId().c_str());
+        auto cmdId = ctx.get_cmdId();
+        auto cmdId_c = const_cast<char*>(cmdId.c_str());
 
-        argv.push_back(cmdId);
+        argv.push_back(cmdId_c);
 
         for (std::string& s : args)
         {
@@ -80,7 +83,7 @@ void ExternalCommand::execute()
         argv.push_back(nullptr);
 
         // args[0] is the path
-        execvp(cmdId, argv.data());
+        execvp(cmdId_c, argv.data());
 
         // if failed
         throw SyscallException("execvp");

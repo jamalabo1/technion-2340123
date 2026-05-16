@@ -11,13 +11,11 @@
 class Parameters
 {
 protected:
-    std::string rawParams;
     std::vector<std::string> params;
 
 public:
-    Parameters(const std::string& raw_params, const std::vector<std::string>& params)
-        : rawParams(raw_params),
-          params(params)
+    Parameters(const std::vector<std::string>& params)
+        :      params(params)
     {
     }
 

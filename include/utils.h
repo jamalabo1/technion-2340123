@@ -28,6 +28,9 @@ namespace Shell
 
         bool regex_contains(const std::string& str, const std::regex& regex);
 
+        std::string _command(const std::string& cmd_line);
+
+        std::vector<std::string> _params(const std::string& trimmed);
 
         short check_child(pid_t pid);
     }
