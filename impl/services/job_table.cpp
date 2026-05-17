@@ -2,13 +2,13 @@
 // Created by jamal on 15/05/2026.
 //
 
-#include "job_table.h"
+#include "../../include/services/job_table.h"
 #include "utils.h"
 
 
 using namespace std;
 
-JobTable::JobTable() : jobs()
+JobTable::JobTable() : jobs(), jobsCount(0)
 {
 }
 

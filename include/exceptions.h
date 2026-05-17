@@ -44,10 +44,11 @@ public:
 };
 
 
-class SyscallException : public std::runtime_error
-{
+class SyscallException : public std::runtime_error {
 public:
-    explicit SyscallException(const std::string& syscallName): std::runtime_error(syscallName)
+    explicit SyscallException(const std::string& syscallName):
+
+    std::runtime_error(syscallName)
     {
     }
 };

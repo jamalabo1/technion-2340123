@@ -63,6 +63,9 @@ public:
     void prepare() override;
 };
 
+DEFINE_COMMAND("unalias", UnAliasCommand, BuiltInCommand);
+
+
 
 class ChangeDirCommand : public BuiltInCommand
 {
@@ -116,17 +119,6 @@ public:
 };
 
 
-class UnAliasCommand : public BuiltInCommand
-{
-public:
-    UnAliasCommand(const CommandCtx& ctx);
-
-    virtual ~UnAliasCommand()
-    {
-    }
-
-    void execute() override;
-};
 
 class UnSetEnvCommand : public BuiltInCommand
 {

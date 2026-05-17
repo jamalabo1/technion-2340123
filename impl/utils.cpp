@@ -9,6 +9,7 @@
 #include "utils.h"
 
 #include <cstring>
+#include <signal.h>
 #include <sstream>
 #include <sys/wait.h>
 

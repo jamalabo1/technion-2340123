@@ -10,27 +10,8 @@
 #include "external.h"
 
 
-class RedirectionCommand : public Command {
-    // TODO: Add your data members
-public:
-    explicit RedirectionCommand(const std::string& cmd_line);
 
-    virtual ~RedirectionCommand() {
-    }
 
-    void execute() override;
-};
-
-class PipeCommand : public Command {
-    // TODO: Add your data members
-public:
-    PipeCommand(const std::string& cmd_line);
-
-    virtual ~PipeCommand() {
-    }
-
-    void execute() override;
-};
 
 class DiskUsageCommand : public Command {
 public:

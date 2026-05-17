@@ -23,7 +23,7 @@ public:
 
     bool addAlias(const std::string& alias, const std::string& value);
 
-    void removeAlias(const std::string& alias);
+    bool removeAlias(const std::string& alias);
 
     std::map<std::string, std::string> mapList();
 

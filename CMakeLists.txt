@@ -31,14 +31,18 @@ add_executable(skeleton_smash
         impl/services/proc_mng.cpp
         impl/services/aliases.cpp
         impl/services/job_table.cpp
+        impl/services/child_tracker.cpp
 
 
         impl/commands/builtin/foreground.cpp
         impl/commands/builtin/kill.cpp
         impl/commands/builtin/alias.cpp
-
+        impl/commands/pipe_command.cpp
+        impl/commands/redirect_command.cpp
 
 )
+
+add_executable(test_err test_err.cpp)
 
 
 target_include_directories(skeleton_smash PUBLIC include)

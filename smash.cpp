@@ -7,13 +7,12 @@
 
 #include "signals.h"
 
-int main(int argc, char* argv[])
-{
+
+int main(int argc, char* argv[]) {
     if (signal(SIGINT, ctrlCHandler) == SIG_ERR)
     {
         perror("smash error: failed to set ctrl-C handler");
     }
-
 
     SmallShell& smash = SmallShell::getInstance();
 
@@ -23,7 +22,26 @@ int main(int argc, char* argv[])
         std::cout << termName << "> ";
 
         std::string cmd_line;
-        std::getline(std::cin, cmd_line);
+
+
+        if (!std::getline(std::cin, cmd_line)) {
+             //TODO: wtf?
+            if (std::cin.eof()) {
+
+                std::cerr << "\nstdin EOF; exiting shell loop in " << getpid() << std::endl;;
+
+            } else {
+
+                std::cerr << "\nstdin error; exiting shell loop\n";
+
+            }
+
+            break;
+
+        }
+
+        std::cout << "DEBUG: "<< cmd_line << std::endl;
+
         smash.executeCommand(cmd_line.c_str());
     }
 

@@ -25,6 +25,8 @@ void AliasCommand::prepare()
     {
         auto args = Shell::Utils::_split(param, "=");
 
+        if (args.size() != 2) throw AliasInvalidFormatException();
+
         //TODO: validate alias
         alias = args[0];
         command = args[1];
@@ -56,5 +58,26 @@ void AliasCommand::execute()
     if (!aliasService->addAlias(alias, command))
     {
         throw CommandErrorMessage(alias + " already exists or is a reserved command");
+    }
+}
+
+
+REGISTER_COMMAND(UnAliasCommand)
+
+void UnAliasCommand::execute() {
+    //Since no preparations are used, for compactness do the validation in here
+
+    auto pList = params()->list();
+
+    if (pList.empty()) {
+        throw CommandErrorMessage("not enough arguments");
+    }
+
+    auto aliasService = ctx.get_services()->aliases;
+
+    for (auto& alias : pList) {
+        if (!aliasService->removeAlias(alias)) {
+            throw CommandErrorMessage(alias + " does not exist");
+        }
     }
 }

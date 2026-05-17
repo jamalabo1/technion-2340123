@@ -6,6 +6,9 @@
 
 #include <csignal>
 #include <iostream>
+#include <unistd.h>
+#include <commands/pipe.h>
+#include <commands/redirect.h>
 
 #include "exceptions.h"
 #include "utils.h"
@@ -20,11 +23,13 @@ SmallShell::SmallShell()
     job_table = make_shared<JobTable>();
     auto proc_mng = make_shared<CommandProcManagement>();
     auto aliases = make_shared<Aliases>();
+    auto children = make_shared<ChildTracker>();
 
     services = make_shared<Services>(
         job_table,
         proc_mng,
-        aliases
+        aliases,
+        children
     );
 }
 
@@ -33,12 +38,99 @@ SmallShell::~SmallShell()
     // TODO: add your implementation
 }
 
+Command * SmallShell::_handleIo(string cmd_s, int ioPos) {
+    auto cmds =  _split(cmd_s, R"(>)");
+
+    //TODO: handle sizes
+
+    Command* cmd1 = CreateCommand(cmds[0].c_str());
+
+    bool isAppend = cmds[1][0] == '>';
+
+    vector<string> fileWParams{
+        cmds[1]
+    };
+    if (isAppend) {
+        fileWParams.emplace_back("append");
+    }
+
+
+    // the reason to use a custom command is we don't want to register it through the factory and hence leak it.
+    CommandCtx fileWCtx(
+        "writer",
+        wenv,
+        new Parameters(fileWParams),
+        CommandCtx::CommandFlags{},
+        services
+    );
+
+    return new FileWrapperProxy(fileWCtx, cmd1);
+
+    //TODO: check if alias would be included here
+    // Command* cmd2 = new FileWrapperProxy(fileWCtx);
+
+    // this should be translated into [cmd1] | writer
+    // in which writer should listen to stdin and write accordingly.
+    // return _createPipe(cmd1, cmd2, vector<string> {  });
+
+}
+
+Command* SmallShell::_handlePipe(std::string cmd_s, int pipePos) {
+    vector<string> paramsList{};
+    // instead of reinventing the wheel, we'll pas it as params
+
+    bool hasEFlag = cmd_s[pipePos +1] == '&';
+    if (hasEFlag) {
+        // that's it we can remove it
+        cmd_s.erase(cmd_s.begin() + pipePos + 1);
+
+        // and add it to params
+        paramsList.emplace_back("&");
+    }
+
+    // we'll ignore isbg at this point
+    auto cmds =  _split(cmd_s, R"(\|)");
+
+    if (cmds.empty()) {
+        throw std::logic_error("no pipes?");
+    }
+    if (cmds.size() != 2) {
+        //TODO: handle correctly
+        throw std::logic_error("wrong number of pipes");
+    }
+
+    if (cmds[0].size()*cmds[1].size() == 0) {
+        throw std::logic_error("no pipes?");
+    }
+
+    //TODO: perform some validations
+
+    Command* cmd1 = CreateCommand(cmds[0].c_str());
+    Command* cmd2 = CreateCommand(cmds[1].c_str());
+
+    return _createPipe(cmd1, cmd2, paramsList);
+}
+
+
+Command* SmallShell::_createPipe(Command* cmd1, Command* cmd2, vector<string> paramsList) const {
+    CommandCtx pipeCtx(
+     "pipe",
+     wenv,
+     new Parameters(paramsList),
+     CommandCtx::CommandFlags{}, // no flags at this point
+     services
+ );
+
+    return new PipeCommand(pipeCtx, cmd1, cmd2);
+}
+
+
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
-Command* SmallShell::CreateCommand(const char* cmd_line)
-{
+Command* SmallShell::CreateCommand(const char* cmd_line) {
     const auto raw_cmd_line = const_cast<char*>(cmd_line);
+
 
     // check before removing
     const bool isBackground = _isBackgroundComamnd(cmd_line);
@@ -48,12 +140,30 @@ Command* SmallShell::CreateCommand(const char* cmd_line)
         raw_cmd_line
     );
 
+
     // normalize
     string cmd_s = _trim(
         string(
             raw_cmd_line
         )
     );
+
+
+    //command creation rejected
+    if (cmd_s.empty()) return nullptr;
+
+    int pipePos = cmd_s.find_first_of('|');
+    if (pipePos != std::string::npos) {
+        // if pipe, then recursive create both
+        return _handlePipe(cmd_s, pipePos);
+    }
+
+    int ioPos = cmd_s.find_first_of('>');
+    if (ioPos != std::string::npos) {
+        // if io, then recursive create both
+        return _handleIo(cmd_s, ioPos);
+    }
+
 
     string candidate = _command(cmd_s);
     candidate = services->aliases->tokenize(candidate);
@@ -94,20 +204,28 @@ Command* SmallShell::CreateCommand(const char* cmd_line)
     return cmd;
 }
 
-void SmallShell::executeCommand(const char* cmd_line)
-{
+void SmallShell::executeCommand(const char* cmd_line) {
     // this should cover all 3 possible states for checking the jobs
     //TODO: check if they want explicit 3 checks.
     job_table->removeFinishedJobs();
 
     Command* cmd = CreateCommand(cmd_line);
+
+    if (cmd == nullptr) {
+        //creation rejected, handle.
+        return;
+    }
+
     const CommandCtx& ctx = cmd->get_ctx();
 
     try
     {
+        // TODO: in an ideal word it would've been unified. but make sure to reflect any change here into the pipe runner
         cmd->prepare();
 
         cmd->execute();
+
+        //TODO: save commands to prevent memory leak (and mange them)
 
         // if is a bg process, then after exec i will get a proc
         if (ctx.get_flags().isBackground)
@@ -124,14 +242,29 @@ void SmallShell::executeCommand(const char* cmd_line)
         string errorMsg = APP_NAME + " error: " + e.what() + " failed";
 
         perror(errorMsg.c_str());
+        // I need a global child error handling here.
+        if (services->children->isChild) {
+            exit(0);
+        }
     }
     catch (const CommandDomainError& e)
     {
-        std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ":" << e.what() << std::endl;
+        std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ": " << e.what() << std::endl;
+
+        // report the error and quit
+        if (services->children->isChild) {
+            exit(0);
+        }
     }
     catch (const std::exception& e)
     {
         // TODO: what do general exception means? (they didnt originate from the app)
+        std::cerr << "general error: " << e.what() << std::endl;
+
+        if (services->children->isChild) {
+            exit(0);
+        }
+
         throw e;
         // std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ":" << e.what() << std::endl;
     }

@@ -4,8 +4,12 @@
 #include "services/proc_mng.h"
 
 #include <cstddef>
+#include <iostream>
+#include <ostream>
 #include <stdexcept>
 #include <sys/wait.h>
+
+#include "exceptions.h"
 
 CommandProcManagement::CommandProcManagement()
 {
@@ -44,7 +48,9 @@ void CommandProcManagement::waitFgProc()
     // NOTE: YOU MUST MAKE SURE IT'S REMOVED FROM THE JOB TABLE TO PREVENT DOUBLE WAITPID
 
     // else wait for the child to finish like regular
-    waitpid(proc->pId, NULL, 0);
+    if (waitpid(proc->pId, nullptr, 0) == -1) {
+        throw SyscallException("waitpid");
+    };
 
     // clear after wait
     clearFgProc();

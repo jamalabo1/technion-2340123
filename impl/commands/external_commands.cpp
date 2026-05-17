@@ -29,16 +29,11 @@ void ExternalCommand::execute()
     bool isComplex = Shell::Utils::regex_contains(concated, complex_ptrn);
 
 
-    int pid = fork();
+    int pid = ctx.get_services()->children->fork();
 
     // parent, handle states
     if (pid != 0)
     {
-        if (pid == -1)
-        {
-            throw SyscallException("fork");
-        }
-
         // always create command proc for running children ( so that signals can be forwarded )
         proc = new CommandProc();
         proc->pId = pid;

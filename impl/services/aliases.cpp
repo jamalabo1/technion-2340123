@@ -1,7 +1,7 @@
 //
 // Created by jamal on 16/05/2026.
 //
-#include "aliases.h"
+#include "services/aliases.h"
 
 #include "command_factory.h"
 
@@ -30,9 +30,13 @@ bool Aliases::addAlias(const std::string& alias, const std::string& value)
     return true;
 }
 
-void Aliases::removeAlias(const std::string& alias)
+bool Aliases::removeAlias(const std::string& alias)
 {
+    // maybe use size checkers
+    if (!containsAlias(alias)) return false;
+
     aliases.erase(alias);
+    return true;
 }
 
 std::map<std::string, std::string> Aliases::mapList()

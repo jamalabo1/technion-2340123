@@ -6,7 +6,7 @@
 #define SHELL_H
 
 #include "command_factory.h"
-#include "job_table.h"
+#include "services/job_table.h"
 #include "commands/all.h"
 
 class SmallShell
@@ -28,6 +28,14 @@ private:
 
     // services
     std::shared_ptr<Services> services;
+
+
+private:
+    Command* _handleIo(std::string cmd_s, int ioPos);
+
+    Command* _handlePipe(std::string cmd_s, int pipePos);
+
+    Command* _createPipe(Command* cmd1, Command* cmd2, std::vector<std::string> paramsList) const;
 
 public:
     Command* CreateCommand(const char* cmd_line);
