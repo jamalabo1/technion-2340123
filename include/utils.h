@@ -22,9 +22,11 @@ namespace Shell
 
         int _parseCommandLine(const char* cmd_line, char** args);
 
-        bool _isBackgroundComamnd(const char* cmd_line);
+        bool _checkAndRemoveBgCommand(std::string &cmd);
 
-        void _removeBackgroundSign(char* cmd_line);
+        // bool _isBackgroundComamnd(const char* cmd_line);
+
+        // void _removeBackgroundSign(std::string& cmd_line);
 
         bool regex_contains(const std::string& str, const std::regex& regex);
 

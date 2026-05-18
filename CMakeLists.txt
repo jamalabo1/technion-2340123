@@ -11,11 +11,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 FILE(GLOB headers "include/*.h")
 
 add_executable(skeleton_smash
+
+        include/ds/avl.h
+        impl/ds/avl.cpp
+        impl/ds/avl_init.cpp
+
         smash.cpp
         Commands.cpp
         signals.cpp
 
         ${headers}
+
+
+
         impl/commands/built_in_commands_impl.cpp
         impl/commands/external_commands.cpp
 
@@ -39,6 +47,8 @@ add_executable(skeleton_smash
         impl/commands/builtin/alias.cpp
         impl/commands/pipe_command.cpp
         impl/commands/redirect_command.cpp
+        include/ds/KindaStack.h
+
 
 )
 

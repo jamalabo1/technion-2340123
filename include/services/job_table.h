@@ -10,13 +10,14 @@
 #include <memory>
 
 #include "../job.h"
+#include "ds/avl.h"
 
 class JobTable
 {
 public:
-    std::vector<JobEntry> jobs;
+    // std::vector<JobEntry> jobs;
 
-    int jobsCount;
+    Avl<int, JobEntry> _jobs;
 
     // TODO: Add your data members
 public:
@@ -46,8 +47,8 @@ public:
     void removeJobById(int jobId);
 
 
-    JobEntry* get_maxIdJob();
-    JobEntry* get_jobById(int jobId);
+    std::shared_ptr<JobEntry> get_maxIdJob() const;
+    std::shared_ptr<JobEntry> get_jobById(int jobId) const;
 
 
     void killAndRemoveAllJobs();

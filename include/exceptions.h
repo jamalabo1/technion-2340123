@@ -26,6 +26,15 @@ public:
     }
 };
 
+// general invalid arguments message
+class CommandTooManyArguments : public CommandDomainError
+{
+public:
+    CommandTooManyArguments(): CommandDomainError("too many arguments")
+    {
+    }
+};
+
 // specific command error
 class CommandErrorMessage : public CommandDomainError
 {

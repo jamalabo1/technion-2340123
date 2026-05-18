@@ -17,7 +17,10 @@ int ChildTracker::fork() {
     if (id == -1)
         throw SyscallException("fork");
 
-    if (id ==0) {
+    if (id == 0) {
+        // change group
+        setpgrp();
+
         isChild = true;
     }
 

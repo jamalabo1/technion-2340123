@@ -24,6 +24,15 @@ public:
 // ChangeTerminalNameCommand
 DEFINE_COMMAND("chprompt", ChangeTerminalNameCommand, BuiltInCommand);
 
+// ShowPidCommand
+DEFINE_COMMAND("showpid", ShowPidCommand, BuiltInCommand);
+
+// ShowPidCommand
+DEFINE_COMMAND("pwd", GetCurrDirCommand, BuiltInCommand);
+
+// ShowPidCommand
+DEFINE_COMMAND("cd", ChangeDirCommand, BuiltInCommand);
+
 // Quit Command
 DEFINE_COMMAND("quit", QuitCommand, BuiltInCommand);
 
@@ -67,41 +76,8 @@ DEFINE_COMMAND("unalias", UnAliasCommand, BuiltInCommand);
 
 
 
-class ChangeDirCommand : public BuiltInCommand
-{
-    // TODO: Add your data members public:
-    ChangeDirCommand(const CommandCtx& ctx);
 
-    virtual ~ChangeDirCommand()
-    {
-    }
 
-    void execute() override;
-};
-
-class GetCurrDirCommand : public BuiltInCommand
-{
-public:
-    GetCurrDirCommand(const CommandCtx& ctx);
-
-    virtual ~GetCurrDirCommand()
-    {
-    }
-
-    void execute() override;
-};
-
-class ShowPidCommand : public BuiltInCommand
-{
-public:
-    ShowPidCommand(const CommandCtx& ctx);
-
-    virtual ~ShowPidCommand()
-    {
-    }
-
-    void execute() override;
-};
 
 
 // bring to fg command

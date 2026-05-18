@@ -24,7 +24,7 @@ protected:
     }
 
 public:
-    explicit Command(CommandCtx& ctx): ctx(ctx)
+    explicit Command(CommandCtx& ctx): ctx(ctx), proc(nullptr)
     {
     };
 

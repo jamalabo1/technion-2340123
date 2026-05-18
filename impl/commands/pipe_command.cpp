@@ -3,6 +3,7 @@
 //
 
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "exceptions.h"
 #include "commands/pipe.h"

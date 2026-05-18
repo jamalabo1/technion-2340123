@@ -40,8 +40,6 @@ int main(int argc, char* argv[]) {
 
         }
 
-        std::cout << "DEBUG: "<< cmd_line << std::endl;
-
         smash.executeCommand(cmd_line.c_str());
     }
 
