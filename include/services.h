@@ -15,8 +15,7 @@
 //TODO: if the projects requires afterward, maybe make it pseudoIoC, where instead of ctx->services relationship
 // commands ask for the service as ioc->[service] in the constructor (through global singleton)
 // such that Services definition does not appear in the header.
-class Services
-{
+class Services {
 public:
     std::shared_ptr<JobTable> table;
     std::shared_ptr<CommandProcManagement> proc_management;
@@ -25,16 +24,15 @@ public:
 
 
     explicit Services(
-        const std::shared_ptr<JobTable>& table,
-        const std::shared_ptr<CommandProcManagement>& proc_management,
-        const std::shared_ptr<Aliases>& aliases,
-        const std::shared_ptr<ChildTracker>& children
+        const std::shared_ptr<JobTable> &table,
+        const std::shared_ptr<CommandProcManagement> &proc_management,
+        const std::shared_ptr<Aliases> &aliases,
+        const std::shared_ptr<ChildTracker> &children
     )
         : table(table),
           proc_management(proc_management),
           aliases(aliases),
-    children(children)
-    {
+          children(children) {
     }
 };
 

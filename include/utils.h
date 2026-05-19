@@ -29,6 +29,7 @@ namespace Shell
         // void _removeBackgroundSign(std::string& cmd_line);
 
         bool regex_contains(const std::string& str, const std::regex& regex);
+        bool contains_or(const std::string& str,  std::vector<std::string>& patterns);
 
         std::string _command(const std::string& cmd_line);
 

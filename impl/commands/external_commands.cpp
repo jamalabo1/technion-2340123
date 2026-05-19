@@ -16,8 +16,7 @@ ExternalCommand::ExternalCommand(CommandCtx& ctx): Command(ctx)
 {
 }
 
-void ExternalCommand::execute()
-{
+void ExternalCommand::execute() {
     auto p = params();
 
     // normalized args
@@ -25,14 +24,15 @@ void ExternalCommand::execute()
 
     std::regex complex_ptrn(R"([?*])");
 
-    //TODO: here's the flag
-    bool isComplex = Shell::Utils::regex_contains(concated, complex_ptrn);
+    static vector<string> pat =  {"*", "?" };
+
+    bool isComplex = Shell::Utils::contains_or(concated, pat);
 
 
     int pid = ctx.get_services()->children->fork();
 
     // parent, handle states
-    if (pid != 0)
+    if (pid > 0)
     {
         // always create command proc for running children ( so that signals can be forwarded )
         proc = new CommandProc();
@@ -54,35 +54,60 @@ void ExternalCommand::execute()
         // child,
         setpgrp();
 
-        // run the cmd
-        vector<string> args = p->list();
 
+        if (isComplex) {
+            // if complex then we are going to run the same command.
+            // just pass everything to bash
 
-        std::vector<char*> argv;
+            vector<string> bashArgs {
+                "bash",
+            "-c",
+                p->concat()
+            };
+            std::vector<char*> argv;
+            // for  nullptr
+            argv.reserve(bashArgs.size()+1);
 
-        // +2 one for the null and one for the cmd
-        argv.reserve(args.size() + 2);
+            for (std::string& s : bashArgs)
+            {
+                argv.emplace_back(
+                    const_cast<char*>(s.c_str())
+                );
+            }
 
-        // the requested command
-        auto cmdId = ctx.get_cmdId();
-        auto cmdId_c = const_cast<char*>(cmdId.c_str());
+            argv.emplace_back(nullptr);
 
-        argv.push_back(cmdId_c);
+            execvp("bash", argv.data());
 
-        for (std::string& s : args)
-        {
-            argv.push_back(
-                const_cast<char*>(s.c_str())
-            );
+        } else {
+            // run the cmd
+            vector<string> args = p->list();
+
+            std::vector<char*> argv;
+
+            // +2 one for the null and one for the cmd
+            argv.reserve(args.size() + 2);
+
+            // the requested command
+            auto cmdId = ctx.get_cmdId();
+            auto cmdId_c = const_cast<char*>(cmdId.c_str());
+
+            argv.push_back(cmdId_c);
+
+            for (std::string& s : args)
+            {
+                argv.push_back(
+                    const_cast<char*>(s.c_str())
+                );
+            }
+
+            // must end in NULL
+            argv.push_back(nullptr);
+
+            // run regular,
+            execvp(cmdId_c, argv.data());
         }
-
-        // must end in NULL
-        argv.push_back(nullptr);
-
-        //TODO: here modify if using bash (only add two params and change cmdId_c)
-
         // args[0] is the path
-        execvp(cmdId_c, argv.data());
 
         // if failed
         throw SyscallException("execvp");

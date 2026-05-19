@@ -7,17 +7,17 @@
 #include "command_proc.h"
 
 
-class CommandProcManagement
-{
+class CommandProcManagement {
 private:
-    CommandProc* current_fg_proc;
+    CommandProc *current_fg_proc;
 
 public:
     CommandProcManagement();
 
 
-    void setFgProc(CommandProc* proc);
-    CommandProc* getFgProc() const;
+    void setFgProc(CommandProc *proc);
+
+    CommandProc *getFgProc() const;
 
     void clearFgProc();
 
@@ -26,8 +26,7 @@ public:
     void waitFgProc();
 
     // for grouping
-    void setAndWaitFgProc(CommandProc* proc);
-
+    void setAndWaitFgProc(CommandProc *proc);
 };
 
 #endif //PROC_MNG_H

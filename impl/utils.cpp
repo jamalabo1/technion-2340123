@@ -143,6 +143,14 @@ namespace Shell {
             return std::regex_match(str, regex);
         }
 
+        bool contains_or(const std::string &str, std::vector<std::string> &patterns) {
+            for (auto& pattern : patterns) {
+                if (str.find_first_of(pattern) != string::npos) {
+                    return true;
+                }
+            }
+        }
+
         short check_child(pid_t pid) {
             int status;
 

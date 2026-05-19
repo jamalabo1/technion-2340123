@@ -10,30 +10,25 @@
 #include <map>
 #include <functional>
 
-class CommandFactory
-{
+class CommandFactory {
 private:
     using FactoryInstanceCreatorType = std::function<Command*(CommandCtx)>;
 
     std::map<std::string, FactoryInstanceCreatorType> table;
 
-    bool _containsCommand(const std::string& key)
-    {
+    bool _containsCommand(const std::string &key) {
         return table.find(key) != table.end();
     }
 
 public:
-    CommandFactory()
-    {
+    CommandFactory() {
     };
 
-    Command* create(
+    Command *create(
         std::string key,
         CommandCtx ctx
-    )
-    {
-        if (table.find(key) == table.end())
-        {
+    ) {
+        if (table.find(key) == table.end()) {
             return nullptr;
         }
 
@@ -41,19 +36,16 @@ public:
         return table[key](std::move(ctx));
     }
 
-    void registerCommand(const std::string& id, FactoryInstanceCreatorType func)
-    {
+    void registerCommand(const std::string &id, FactoryInstanceCreatorType func) {
         table[id] = std::move(func);
     }
 
 
-    static bool containsCommand(const std::string& key)
-    {
+    static bool containsCommand(const std::string &key) {
         return getInstance()->_containsCommand(key);
     }
 
-    static std::shared_ptr<CommandFactory> getInstance()
-    {
+    static std::shared_ptr<CommandFactory> getInstance() {
         static std::shared_ptr<CommandFactory> instance = std::make_shared<CommandFactory>();
 
         return instance;

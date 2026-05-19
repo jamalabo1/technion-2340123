@@ -15,11 +15,9 @@
 
 
 // command context (instead of drilling the params, and to allow future expansion)
-class CommandCtx
-{
+class CommandCtx {
 public:
-    struct CommandFlags
-    {
+    struct CommandFlags {
         bool isBackground;
     };
 
@@ -27,7 +25,7 @@ private:
     std::string commandId;
 
     // could be of different type based on the command.
-    Parameters* params;
+    Parameters *params;
 
     // shared objs
     std::shared_ptr<WorkingEnvironment> wenv;
@@ -41,22 +39,24 @@ private:
 public:
     CommandCtx(
         std::string cmd_id,
-        const std::shared_ptr<WorkingEnvironment>& wenv,
-        Parameters* params,
+        const std::shared_ptr<WorkingEnvironment> &wenv,
+        Parameters *params,
         CommandFlags flags,
-        const std::shared_ptr<Services>& services
+        const std::shared_ptr<Services> &services
     )
         : commandId(std::move(cmd_id)),
           params(params),
           wenv(wenv),
           flags(flags),
-    services(services)
-    {
+          services(services) {
     }
 
     std::shared_ptr<WorkingEnvironment> get_wenv() const;
-    Parameters* get_params() const;
+
+    Parameters *get_params() const;
+
     std::string get_cmdName() const;
+
     std::string get_cmdId() const;
 
     CommandFlags get_flags() const;
@@ -64,7 +64,6 @@ public:
     std::string get_cmdLine() const;
 
     std::shared_ptr<Services> get_services() const;
-
 };
 
 #endif //CONTEXT_H
