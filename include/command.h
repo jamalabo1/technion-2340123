@@ -9,40 +9,37 @@
 #include "command_proc.h"
 
 
-class Command
-{
+class Command {
 protected:
     //ctx
     CommandCtx ctx;
 
     // running proc of this command
-    CommandProc* proc;
+    CommandProc *proc;
 
-    const Parameters* params() const
-    {
+    const Parameters *params() const {
         return ctx.get_params();
     }
 
+    std::shared_ptr<Services> services;
+
 public:
-    explicit Command(CommandCtx& ctx): ctx(ctx), proc(nullptr)
-    {
+    explicit Command(CommandCtx &ctx): ctx(ctx), proc(nullptr) {
+        services = ctx.get_services();
     };
 
-    virtual ~Command()
-    {
+    virtual ~Command() {
     };
 
     virtual void execute() = 0;
 
-    virtual CommandCtx& get_ctx()
-    {
+    virtual CommandCtx &get_ctx() {
         return ctx;
     }
 
-    CommandProc* get_proc();
+    CommandProc *get_proc();
 
-    virtual void prepare()
-    {
+    virtual void prepare() {
         // for validations mainly
     };
     //virtual void cleanup();

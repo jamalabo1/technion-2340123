@@ -8,18 +8,14 @@
 
 REGISTER_COMMAND(ForegroundCommand);
 
-void ForegroundCommand::prepare()
-{
+void ForegroundCommand::prepare() {
     // single or default -1
     auto jobId_s = params()
-        ->singleOrDefault<CommandInvalidArguments>("-1");
+            ->singleOrDefault<CommandInvalidArguments>("-1");
 
-    try
-    {
+    try {
         jobId = std::stoi(jobId_s);
-    }
-    catch (std::exception&)
-    {
+    } catch (std::exception &) {
         //TODO: I think it's of this reason it's better if I keep it split here instead of merging
         throw CommandInvalidArguments();
     }
@@ -28,19 +24,14 @@ void ForegroundCommand::prepare()
     if (jobId < 0 && jobId != -1) throw CommandInvalidArguments();
 }
 
-void ForegroundCommand::execute()
-{
-    const auto services = ctx.get_services();
-
+void ForegroundCommand::execute() {
     auto job =
-        jobId == -1
-            ? services->table->get_maxIdJob()
-            : services->table->get_jobById(jobId);
+            jobId == -1
+                ? services->table->get_maxIdJob()
+                : services->table->get_jobById(jobId);
 
-    if (job == nullptr)
-    {
-        if (jobId > 0)
-        {
+    if (job == nullptr) {
+        if (jobId > 0) {
             throw CommandJobNotFoundException(jobId);
         }
         throw CommandErrorMessage("jobs list is empty");
@@ -48,8 +39,7 @@ void ForegroundCommand::execute()
 
     auto proc = job->get_proc();
 
-    if (proc == nullptr)
-    {
+    if (proc == nullptr) {
         throw std::logic_error("how is a job without a proc?");
     }
 

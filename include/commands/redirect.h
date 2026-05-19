@@ -8,8 +8,7 @@
 #include "command.h"
 
 // I/O Redirection command
-class RedirectionCommand : public Command
-{
+class RedirectionCommand : public Command {
 private:
 
 public:
@@ -25,21 +24,17 @@ class FileWrapperProxy : public Command {
 private:
     std::string fileName;
     bool isAppend;
-    Command* cmd;
+    Command *cmd;
 
 public:
-    explicit
-    FileWrapperProxy(CommandCtx& ctx, Command* cmd):
-    Command(ctx),
-    cmd(cmd)
-
-    {};
+    explicit FileWrapperProxy(CommandCtx &ctx, Command *cmd): Command(ctx),
+                                                              cmd(cmd) {
+    };
 
     void prepare() override;
+
     void execute() override;
 };
-
-
 
 
 #endif //REDIRECT_H

@@ -41,7 +41,7 @@ void AliasCommand::prepare()
 
 void AliasCommand::execute()
 {
-    auto& aliasService = ctx.get_services()->aliases;
+    auto& aliasService = services->aliases;
 
     if (listAll)
     {
@@ -70,10 +70,10 @@ void UnAliasCommand::execute() {
     auto pList = params()->list();
 
     if (pList.empty()) {
-        throw CommandErrorMessage("not enough arguments");
+        throw CommandNotEnoughArguments();
     }
 
-    auto aliasService = ctx.get_services()->aliases;
+    auto aliasService = services->aliases;
 
     for (auto& alias : pList) {
         if (!aliasService->removeAlias(alias)) {

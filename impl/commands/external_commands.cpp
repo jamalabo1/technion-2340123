@@ -29,7 +29,7 @@ void ExternalCommand::execute() {
     bool isComplex = Shell::Utils::contains_or(concated, pat);
 
 
-    int pid = ctx.get_services()->children->fork();
+    const int pid = services->children->fork();
 
     // parent, handle states
     if (pid > 0)
@@ -43,7 +43,7 @@ void ExternalCommand::execute() {
 
         if (!ctx.get_flags().isBackground)
         {
-            auto proc_mng = ctx.get_services()->proc_management;
+            auto proc_mng = services->proc_management;
 
             // set the current process, since not bg then wait for it
             proc_mng->setAndWaitFgProc(proc);
@@ -51,19 +51,23 @@ void ExternalCommand::execute() {
     }
     else
     {
-        // child,
-        setpgrp();
-
-
         if (isComplex) {
             // if complex then we are going to run the same command.
             // just pass everything to bash
 
+            // this is created
+            auto cmdId = ctx.get_cmdId();
+
+            string cmdParams =  p->concat();
+            string bashCmd = cmdId + " " + cmdParams;
+
+
             vector<string> bashArgs {
                 "bash",
             "-c",
-                p->concat()
+                bashCmd
             };
+
             std::vector<char*> argv;
             // for  nullptr
             argv.reserve(bashArgs.size()+1);
@@ -78,7 +82,6 @@ void ExternalCommand::execute() {
             argv.emplace_back(nullptr);
 
             execvp("bash", argv.data());
-
         } else {
             // run the cmd
             vector<string> args = p->list();

@@ -18,7 +18,7 @@ void FileWrapperProxy::prepare() {
 void FileWrapperProxy::execute() {
     // we are just a proxy to open the file and let command write to it through its stdout (new fd).
 
-    int proxy = ctx.get_services()->children->fork();
+    int proxy = services->children->fork();
 
 
     if (proxy == 0) {
@@ -50,7 +50,7 @@ void FileWrapperProxy::execute() {
 
 
     // we can make it bg by a simple flag, and it already handles signals.
-    ctx.get_services()->proc_management->setAndWaitFgProc(proc);
+    services->proc_management->setAndWaitFgProc(proc);
 
      // throw CommandErrorMessage("exception");
 

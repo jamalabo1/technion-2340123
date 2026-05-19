@@ -35,6 +35,17 @@ public:
     }
 };
 
+// general not enough arguments message
+class CommandNotEnoughArguments : public CommandDomainError
+{
+public:
+    CommandNotEnoughArguments(): CommandDomainError("not enough arguments")
+    {
+    }
+};
+
+
+
 // specific command error
 class CommandErrorMessage : public CommandDomainError
 {

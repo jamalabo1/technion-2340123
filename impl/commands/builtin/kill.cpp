@@ -39,7 +39,7 @@ void KillCommand::prepare()
 
 void KillCommand::execute()
 {
-    auto job = ctx.get_services()->table->get_jobById(jobId);
+    auto job = services->table->get_jobById(jobId);
     if (job == nullptr) throw CommandJobNotFoundException(jobId);
 
     // no need to remove from job entry, no waitpid was done.

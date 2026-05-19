@@ -75,11 +75,6 @@ public:
 DEFINE_COMMAND("unalias", UnAliasCommand, BuiltInCommand);
 
 
-
-
-
-
-
 // bring to fg command
 class ForegroundCommand : public BuiltInCommand
 {
@@ -94,30 +89,10 @@ public:
     void prepare() override;
 };
 
+// UnSetEnvCommand
+DEFINE_COMMAND("unsetenv", UnSetEnvCommand, BuiltInCommand);
 
-
-class UnSetEnvCommand : public BuiltInCommand
-{
-public:
-    UnSetEnvCommand(const CommandCtx& ctx);
-
-    virtual ~UnSetEnvCommand()
-    {
-    }
-
-    void execute() override;
-};
-
-class SysInfoCommand : public BuiltInCommand
-{
-public:
-    SysInfoCommand(const CommandCtx& ctx);
-
-    virtual ~SysInfoCommand()
-    {
-    }
-
-    void execute() override;
-};
+// UnSetEnvCommand
+DEFINE_COMMAND("sysinfo", SysInfoCommand, BuiltInCommand);
 
 #endif //BUILT_IN_H

@@ -47,7 +47,10 @@ add_executable(skeleton_smash
         impl/commands/builtin/alias.cpp
         impl/commands/pipe_command.cpp
         impl/commands/redirect_command.cpp
-        include/ds/KindaStack.h
+
+        impl/commands/builtin/unset.cpp
+        impl/commands/special/special_commands.cpp
+        include/commands/special.h
 
 
 )

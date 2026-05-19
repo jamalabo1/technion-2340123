@@ -7,6 +7,9 @@
 #include "exceptions.h"
 #include "utils.h"
 #include "commands/built_in.h"
+#include <sys/utsname.h>
+
+using std::string;
 
 /*
  * ChangeTerminalNameCommand
@@ -36,8 +39,6 @@ void ChangeTerminalNameCommand::execute() {
 REGISTER_COMMAND(JobsCommand);
 
 void JobsCommand::execute() {
-    auto services = ctx.get_services();
-
     services->table->printJobsList();
 }
 
@@ -56,7 +57,7 @@ void QuitCommand::execute() {
         std::cout << termName << ": ";
 
         // hand it to the table for further printing and handling (although debatable if the table should be the one to do this)
-        ctx.get_services()->table->killAndRemoveAllJobs();
+        services->table->killAndRemoveAllJobs();
     }
 
     std::exit(0);
@@ -100,7 +101,7 @@ void ChangeDirCommand::execute() {
     if (path == "-") {
         try {
             path = wenv->getLastWorkingDir();
-        } catch (const std::exception&) {
+        } catch (const std::exception &) {
             throw CommandErrorMessage("OLDPWD not set");
         }
     }
@@ -114,4 +115,26 @@ void ChangeDirCommand::execute() {
     // we want the new one to be [Y]->[X]
     // so we need to push [Y]
     wenv->pushDir(path);
+}
+
+
+/*
+ * SysInfoCommand
+ */
+REGISTER_COMMAND(SysInfoCommand);
+
+void SysInfoCommand::execute() {
+    struct utsname buf{};
+
+    if (uname(&buf) == -1) {
+        throw SyscallException("uname");
+    };
+
+
+    std::cout << "System: " << buf.sysname << std::endl;
+    std::cout << "Hostname: " << buf.domainname << std::endl;
+    std::cout << "Kernel: " << buf.release  << std::endl;
+    std::cout << "Version: " << buf.version << std::endl;
+    std::cout << "Architecture: " << buf.machine  << std::endl;
+
 }

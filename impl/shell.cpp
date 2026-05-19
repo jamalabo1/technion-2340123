@@ -55,7 +55,7 @@ Command *SmallShell::_handleIo(string cmd_s, int ioPos) {
 
     // the reason to use a custom command is we don't want to register it through the factory and hence leak it.
     CommandCtx fileWCtx(
-        "writer",
+        "_writer",
         wenv,
         new Parameters(fileWParams),
         CommandCtx::CommandFlags{},
