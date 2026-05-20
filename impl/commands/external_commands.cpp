@@ -51,6 +51,7 @@ void ExternalCommand::execute() {
     }
     else
     {
+        //TODO: close the stdout of the child so that no interwind outputs occur.
         if (isComplex) {
             // if complex then we are going to run the same command.
             // just pass everything to bash

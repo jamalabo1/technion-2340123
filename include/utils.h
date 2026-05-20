@@ -40,6 +40,8 @@ namespace Shell
         void SignalProc(int pId, int sigNum);
 
         short check_child(pid_t pid);
+
+        std::string read_all(const std::string& path);
     }
 }
 

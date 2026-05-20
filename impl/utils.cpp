@@ -9,6 +9,7 @@
 #include "utils.h"
 
 #include <cstring>
+#include <fcntl.h>
 #include <signal.h>
 #include <sstream>
 #include <sys/wait.h>
@@ -170,6 +171,43 @@ namespace Shell {
                 // not relevant for tracking up to this point
                 return -1;
             }
+        }
+
+        string read_all(const string& path) {
+            int fd = open(path.c_str(), O_RDONLY);
+
+            if (fd == -1) {
+                throw SyscallException("open");
+            }
+
+            char buf[512];
+
+            string data;
+
+            static constexpr int SIZE =sizeof(buf);
+
+            while (true) {
+                int bytes = read(fd, buf, SIZE);
+                // read failed
+                if (bytes == -1) {
+                    //close and report
+                    close(fd);
+                    throw SyscallException("read");
+                }
+                // if we have any data, then add it
+                if (bytes > 0) {
+                    // add the received data
+                    data.append(buf, bytes);
+                }
+
+                // we didnt get data as much as we requested, so there will be no further data to be read.
+                if (bytes < SIZE) {
+                    close(fd);
+                    break; // EOF
+                }
+            }
+
+            return data;
         }
     }
 }

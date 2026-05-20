@@ -124,17 +124,33 @@ void ChangeDirCommand::execute() {
 REGISTER_COMMAND(SysInfoCommand);
 
 void SysInfoCommand::execute() {
-    struct utsname buf{};
+    // struct utsname buf{};
+    //
+    // if (uname(&buf) == -1) {
+    //     throw SyscallException("uname");
+    // };
+    //
+    //
+    // std::cout << "System: " << buf.sysname << std::endl;
+    // std::cout << "Hostname: " << buf.domainname << std::endl;
+    // std::cout << "Kernel: " << buf.release  << std::endl;
+    // std::cout << "Version: " << buf.version << std::endl;
+    // std::cout << "Architecture: " << buf.machine  << std::endl;
+    std::string sysname  = Shell::Utils::read_all("/proc/sys/kernel/ostype");
 
-    if (uname(&buf) == -1) {
-        throw SyscallException("uname");
-    };
+    std::string hostname = Shell::Utils::read_all("/proc/sys/kernel/hostname");
 
+    std::string release  = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
 
-    std::cout << "System: " << buf.sysname << std::endl;
-    std::cout << "Hostname: " << buf.domainname << std::endl;
-    std::cout << "Kernel: " << buf.release  << std::endl;
-    std::cout << "Version: " << buf.version << std::endl;
-    std::cout << "Architecture: " << buf.machine  << std::endl;
+    std::string version  = Shell::Utils::read_all("/proc/sys/kernel/version");
+
+    // since the read_all will also read the \n, so might as well just keep it
+    std::cout << "System: " << sysname;
+
+    std::cout << "Hostname: " << hostname;
+
+    std::cout << "Kernel: " << release;
+
+    std::cout << "Version: " << version;
 
 }
