@@ -51,6 +51,7 @@ add_executable(skeleton_smash
         impl/commands/builtin/unset.cpp
         impl/commands/special/special_commands.cpp
         include/commands/special.h
+        impl/commands/special/du_command.cpp
 
 
 )
