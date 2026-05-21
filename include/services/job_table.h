@@ -29,7 +29,7 @@ public:
 
     void addJob(
         const std::string& cmd_line,
-        CommandProc* cmd
+        const std::shared_ptr<CommandProc>& cmd
     );
 
     void printJobsList();

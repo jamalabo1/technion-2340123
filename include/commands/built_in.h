@@ -62,7 +62,7 @@ class AliasCommand : public BuiltInCommand
     DEFAULT_COMMAND_HELPER("alias", AliasCommand, BuiltInCommand)
 
 private:
-    bool listAll;
+    bool listAll = false;
     std::string alias;
     std::string command;
 

@@ -24,9 +24,9 @@ public:
     CommandFactory() {
     };
 
-    Command *create(
+    Command* create(
         std::string key,
-        CommandCtx ctx
+        CommandCtx& ctx
     ) {
         if (table.find(key) == table.end()) {
             return nullptr;

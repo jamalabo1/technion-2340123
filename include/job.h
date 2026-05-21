@@ -6,6 +6,7 @@
 #define JOB_H
 
 #include <iostream>
+#include <utility>
 
 #include "string"
 
@@ -15,7 +16,7 @@
 class JobEntry
 {
 private:
-    CommandProc* proc;
+    std::shared_ptr<CommandProc> proc;
 
     std::string cmd_line;
 
@@ -23,12 +24,12 @@ private:
 
 public:
     JobEntry(
-        int job_id,
-        CommandProc* proc,
+        const int job_id,
+        const std::shared_ptr<CommandProc> &proc,
         std::string cmd_line
     )
         : proc(proc),
-          cmd_line(cmd_line),
+          cmd_line(std::move(cmd_line)),
           jobId(job_id)
     {
     }
@@ -43,12 +44,12 @@ public:
         return proc->pId;
     }
 
-    CommandProc* get_proc() const
+    std::shared_ptr<CommandProc> get_proc() const
     {
         return proc;
     }
 
-    // print without endline
+    // print without end line
     void printCmdLine() const
     {
         std::cout << cmd_line;

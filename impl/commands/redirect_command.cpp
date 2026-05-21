@@ -23,50 +23,31 @@ void FileWrapperProxy::execute() {
 
     if (proxy == 0) {
         //child
-         int flags = O_WRONLY | O_CREAT | (isAppend ? O_APPEND : O_TRUNC);
+        int flags = O_WRONLY | O_CREAT | (isAppend ? O_APPEND : O_TRUNC);
 
-         int fd = open(fileName.c_str(), flags, 0666);
+        int fd = open(fileName.c_str(), flags, 0666);
 
-         if (fd == -1) {
+        if (fd == -1) {
             throw SyscallException("open");
         }
 
-         if (dup2(fd, STDOUT_FILENO) == -1) {
+        if (dup2(fd, STDOUT_FILENO) == -1) {
             throw SyscallException("dup2");
         }
 
-         // must be before execute since if it's execv we cannot close afterward.
+        // must be before execute since if it's execv we cannot close afterward.
         close(fd);
 
-        cmd->execute();
+        // but also prepare
+        cmd->run();
 
         //if not execv
         exit(0);
     }
 
     // treat it as a proc
-    proc = new CommandProc();
-    proc->pId = proxy;
-
+    setProc(proxy);
 
     // we can make it bg by a simple flag, and it already handles signals.
     services->proc_management->setAndWaitFgProc(proc);
-
-     // throw CommandErrorMessage("exception");
-
-    // int flags = isAppend ? O_APPEND : O_CREAT;
-    //
-    // int fd = open(fileName.c_str(), flags);
-    //
-    // if (fd == -1) {
-    //     throw SyscallException("open");
-    // }
-    //
-    //
-    // // this way procA tried to write into our stdin, which is the file, so it ends up writing to the file itself.
-    // if (dup2(fd, STDIN_FILENO) == -1) {
-    //     close(fd);
-    //     throw SyscallException("dup2");
-    // }
-    //since pipe creates a fork for this process dup2 does not change the shell's stdin so we are safe.
 }

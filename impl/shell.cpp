@@ -33,8 +33,8 @@ SmallShell::SmallShell() {
 }
 
 SmallShell::~SmallShell() {
-    // TODO: add your implementation
 }
+
 
 Command *SmallShell::_handleIo(string cmd_s, int ioPos) {
     auto cmds = _split(cmd_s, R"(>)");
@@ -57,7 +57,7 @@ Command *SmallShell::_handleIo(string cmd_s, int ioPos) {
     CommandCtx fileWCtx(
         "_writer",
         wenv,
-        new Parameters(fileWParams),
+        Parameters(fileWParams),
         CommandCtx::CommandFlags{},
         services
     );
@@ -65,8 +65,8 @@ Command *SmallShell::_handleIo(string cmd_s, int ioPos) {
     return new FileWrapperProxy(fileWCtx, cmd1);
 
     //TODO: check if alias would be included here
-    // Command* cmd2 = new FileWrapperProxy(fileWCtx);
 
+    // Command* cmd2 = new FileWrapperProxy(fileWCtx);
     // this should be translated into [cmd1] | writer
     // in which writer should listen to stdin and write accordingly.
     // return _createPipe(cmd1, cmd2, vector<string> {  });
@@ -103,6 +103,8 @@ Command *SmallShell::_handlePipe(std::string cmd_s, int pipePos) {
     //TODO: perform some validations
 
     Command *cmd1 = CreateCommand(cmds[0].c_str());
+
+    //TODO: it seems this is not symmetric (for aliases)
     Command *cmd2 = CreateCommand(cmds[1].c_str());
 
     return _createPipe(cmd1, cmd2, paramsList);
@@ -113,7 +115,7 @@ Command *SmallShell::_createPipe(Command *cmd1, Command *cmd2, vector<string> pa
     CommandCtx pipeCtx(
         "pipe",
         wenv,
-        new Parameters(paramsList),
+        Parameters(paramsList),
         CommandCtx::CommandFlags{}, // no flags at this point
         services
     );
@@ -128,11 +130,6 @@ Command *SmallShell::_createPipe(Command *cmd1, Command *cmd2, vector<string> pa
 Command *SmallShell::CreateCommand(const char *cmd_line) {
     const auto raw_cmd_line = const_cast<char *>(cmd_line);
 
-
-    // check before removing
-    // const bool isBackground = _isBackgroundComamnd(cmd_line);
-
-
     // normalize
     string cmd_s = _trim(
         string(
@@ -140,15 +137,8 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
         )
     );
 
-    //TODO: double wtf was that?? who wrote that crap!!!!
-
-    // // remove the bg sign
-    //  _removeBackgroundSign(
-    //     cmd_s
-    // );
 
     const bool isBackground = _checkAndRemoveBgCommand(cmd_s);
-
 
     //command creation rejected
     if (cmd_s.empty()) return nullptr;
@@ -167,11 +157,10 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
 
 
     string candidate = _command(cmd_s);
+    // tokenize
     candidate = services->aliases->tokenize(candidate);
     // // perform replacement (maybe also get the index from _command)
     cmd_s.replace(0, cmd_s.find_first_of(" \n"), candidate);
-
-    // TODO: tokenize here using aliases.
 
     // extract command
     string command = _command(cmd_s);
@@ -179,10 +168,9 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
     // get params
     const vector<string> paramsList = _params(cmd_s);
 
-    auto *params = new Parameters(
+    const auto params = Parameters(
         paramsList
     );
-
 
     CommandCtx ctx(
         command,
@@ -195,6 +183,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line) {
         services
     );
 
+    // the problem is this move
     auto cmd = cmdFactory->create(command, ctx);
 
     if (cmd == nullptr) {
@@ -212,7 +201,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
         //TODO: waitpid error get's me in an infinite loop
         job_table->removeFinishedJobs();
 
-        Command *cmd = CreateCommand(cmd_line);
+        auto cmd = CreateCommand(cmd_line);
 
         if (cmd == nullptr) {
             //creation rejected, handle.
@@ -222,10 +211,8 @@ void SmallShell::executeCommand(const char *cmd_line) {
         const CommandCtx &ctx = cmd->get_ctx();
 
         try {
-            // TODO: in an ideal word it would've been unified. but make sure to reflect any change here into the pipe runner
-            cmd->prepare();
-
-            cmd->execute();
+            // exec + prepare are unifed under run
+            cmd->run();
 
             //TODO: save commands to prevent memory leak (and mange them)
 
@@ -245,6 +232,8 @@ void SmallShell::executeCommand(const char *cmd_line) {
                 exit(0);
             }
         }
+        // we are finished with this cmd
+        delete cmd;
     } catch (const SyscallException &e) {
         string errorMsg = APP_NAME + " error: " + e.what() + " failed";
 

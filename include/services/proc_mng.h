@@ -4,20 +4,21 @@
 
 #ifndef PROC_MNG_H
 #define PROC_MNG_H
+#include <memory>
+
 #include "command_proc.h"
 
 
 class CommandProcManagement {
 private:
-    CommandProc *current_fg_proc;
+    std::shared_ptr<CommandProc> current_fg_proc;
 
 public:
     CommandProcManagement();
 
+    void setFgProc(const std::shared_ptr<CommandProc>& proc);
 
-    void setFgProc(CommandProc *proc);
-
-    CommandProc *getFgProc() const;
+    std::shared_ptr<CommandProc> getFgProc() const;
 
     void clearFgProc();
 
@@ -26,7 +27,7 @@ public:
     void waitFgProc();
 
     // for grouping
-    void setAndWaitFgProc(CommandProc *proc);
+    void setAndWaitFgProc(const std::shared_ptr<CommandProc> &proc);
 };
 
 #endif //PROC_MNG_H

@@ -15,10 +15,15 @@ protected:
     CommandCtx ctx;
 
     // running proc of this command
-    CommandProc *proc;
+    std::shared_ptr<CommandProc> proc;
 
     const Parameters *params() const {
-        return ctx.get_params();
+        return &ctx.get_params();
+    }
+
+    void setProc(int pid) {
+        proc = std::make_shared<CommandProc>();
+        proc->pId = pid;
     }
 
     std::shared_ptr<Services> services;
@@ -28,8 +33,7 @@ public:
         services = ctx.get_services();
     };
 
-    virtual ~Command() {
-    };
+    virtual ~Command() = default;
 
     virtual void execute() = 0;
 
@@ -37,11 +41,18 @@ public:
         return ctx;
     }
 
-    CommandProc *get_proc();
+    std::shared_ptr<CommandProc> get_proc();
 
     virtual void prepare() {
         // for validations mainly
     };
+
+    // a unifed call
+    void run() {
+        prepare();
+        execute();
+    }
+
     //virtual void cleanup();
     // TODO: Add your extra methods if needed
 };

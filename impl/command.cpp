@@ -3,7 +3,7 @@
 //
 #include "command.h"
 
-CommandProc* Command::get_proc()
+std::shared_ptr<CommandProc> Command::get_proc()
 {
     return proc;
 }

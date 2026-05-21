@@ -21,37 +21,17 @@ void UnSetEnvCommand::execute() {
         throw CommandNotEnoughArguments();
     }
 
+    // environ path
     std::string environ = "/proc/" + std::to_string(getpid()) + "/environ";
 
+    // read the environ
     FILE *env = fopen(environ.c_str(), "r");
     if (env == nullptr) {
         throw SyscallException("fopen");
     }
 
+    // read everything from the file
     string env_vars_raw = Shell::Utils::read_all_f(env);
-
-    // char buffer[512];
-
-    // keep reading the environs
-    // while (true) {
-    //     size_t bytes = fread(buffer, sizeof(char), sizeof(buffer), env);
-    //     if (bytes > 0) {
-    //         // add the received data
-    //         env_vars_raw.append(buffer, bytes);
-    //     }
-    //
-    //     // if didn't get all requested data:
-    //     if (bytes != sizeof(buffer)) {
-    //         //close anyway
-    //         fclose(env);
-    //         // if was error
-    //         if (ferror(env)) {
-    //             throw SyscallException("fread");
-    //         }
-    //         // otherwise were done.
-    //         break;
-    //     }
-    // }
 
     // after reading the raw data, we use our beloved cpp to process
     std::vector<string> env_vars;

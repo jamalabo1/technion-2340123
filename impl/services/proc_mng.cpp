@@ -11,37 +11,32 @@
 
 #include "exceptions.h"
 
-CommandProcManagement::CommandProcManagement()
-{
+using std::shared_ptr;
+
+CommandProcManagement::CommandProcManagement() {
     current_fg_proc = nullptr;
 }
 
-void CommandProcManagement::setFgProc(CommandProc* proc)
-{
+void CommandProcManagement::setFgProc(const std::shared_ptr<CommandProc> &proc) {
     current_fg_proc = proc;
 }
 
-CommandProc* CommandProcManagement::getFgProc() const
-{
+shared_ptr<CommandProc> CommandProcManagement::getFgProc() const {
     return current_fg_proc;
 }
 
-void CommandProcManagement::clearFgProc()
-{
+void CommandProcManagement::clearFgProc() {
     setFgProc(nullptr);
 }
 
-void CommandProcManagement::waitFgProc()
-{
+void CommandProcManagement::waitFgProc() {
     // get the proc
     auto proc = getFgProc();
 
-    if (proc == nullptr)
-    {
+    if (proc == nullptr) {
         throw std::logic_error("no proc to wait on");
     }
-    if (proc->wasKilled)
-    {
+    if (proc->wasKilled) {
         throw std::logic_error("proc was already killed");
     }
 
@@ -56,8 +51,7 @@ void CommandProcManagement::waitFgProc()
     clearFgProc();
 }
 
-void CommandProcManagement::setAndWaitFgProc(CommandProc* proc)
-{
+void CommandProcManagement::setAndWaitFgProc(const std::shared_ptr<CommandProc> &proc) {
     setFgProc(proc);
 
     waitFgProc();

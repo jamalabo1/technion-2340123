@@ -30,10 +30,7 @@ string Parameters::concat() const
 
 {
     std::string concatenated;
-    // for (const auto& param : params)
-    // {
-    //     concatenated += param;
-    // }
+
     int n = params.size();
     for (int i = 0; i < n; i++)
     {

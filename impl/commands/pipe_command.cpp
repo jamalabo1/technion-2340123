@@ -19,14 +19,13 @@ PipeCommand::PipeCommand(CommandCtx &ctx, Command *cmd1, Command *cmd2) : Comman
 #define DUP2(...) GUARDED_SYSCALL(dup2, __VA_ARGS__)
 
 void PipeCommand::execute() {
-
     // create a pipe in the parent
     int fd[2];
 
     // pipe(fd)
     GUARDED_SYSCALL(pipe, fd);
 
-    int child1 = fork();
+    int child1 = services->children->fork();
 
     if (child1 == 0) {
         // now change the fds for child1
@@ -45,8 +44,7 @@ void PipeCommand::execute() {
         CLOSE(fd[1]);
 
         // execute as regular. (we don't mind if it waits for  execv's or not, we have our own child wrapper)
-        cmd1->prepare();
-        cmd1->execute();
+        cmd1->run();
 
         // but if not excev, then quit this instance
         exit(0);
@@ -54,10 +52,9 @@ void PipeCommand::execute() {
         return;
     }
 
-    int child2 = fork();
+    int child2 = services->children->fork();
 
     if (child2 == 0) {
-
         // std::cout <<" child2 pid " << getpid() << std::endl;
 
         // child2 does not writes to the pipe so
@@ -70,8 +67,7 @@ void PipeCommand::execute() {
         CLOSE(fd[0]);
 
         // change for child2
-        cmd2->prepare();
-        cmd2->execute();
+        cmd2->run();
 
         // and here exit
         exit(0);
@@ -95,6 +91,10 @@ void PipeCommand::execute() {
      */
 
     //perform a blocking wait in the parent for both
-    waitpid(child1, nullptr, 0);
-    waitpid(child2, nullptr, 0);
+    if (waitpid(child1, nullptr, 0) == -1) {
+        throw SyscallException("waitpid");
+    };
+    if (waitpid(child2, nullptr, 0) == -1) {
+        throw SyscallException("waitpid");
+    };
 }

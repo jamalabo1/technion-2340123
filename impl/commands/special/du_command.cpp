@@ -67,14 +67,13 @@ void DiskUsageCommand::execute() {
                         throw SyscallException("fstatat");
                     }
 
-
                     if (S_ISDIR(st.st_mode)) {
                         //since order does not matter we'll add it for further processing.
                         // but we must make sure we're supplying the relative path since our cwd did not change and we don't want to change it anyway
                         q.push(dir + "/" + name);
                         // recurse into dir/name
                     } else {
-
+                        // TODO: correct size polling?
                         totalSize += st.st_size;
                     }
                 }

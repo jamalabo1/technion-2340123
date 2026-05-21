@@ -16,7 +16,7 @@ void ForegroundCommand::prepare() {
     try {
         jobId = std::stoi(jobId_s);
     } catch (std::exception &) {
-        //TODO: I think it's of this reason it's better if I keep it split here instead of merging
+        //NOTE: I think it's of this reason it's better if I keep it split here instead of merging
         throw CommandInvalidArguments();
     }
 

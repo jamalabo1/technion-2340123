@@ -69,7 +69,7 @@ void QuitCommand::execute() {
 REGISTER_COMMAND(ShowPidCommand);
 
 void ShowPidCommand::execute() {
-    std::cout << "smash pid is" << getpid() << std::endl;
+    std::cout << "smash pid is " << getpid() << std::endl;
 }
 
 /*

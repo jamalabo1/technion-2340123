@@ -9,8 +9,7 @@
 #include "services/job_table.h"
 #include "commands/all.h"
 
-class SmallShell
-{
+class SmallShell {
 private:
     SmallShell();
 
@@ -55,15 +54,11 @@ public:
 
     std::string get_terminalName() const { return wenv->getTerminalName(); }
 
-    CommandProc* get_fg_proc() const { return services->proc_management->getFgProc(); }
+    std::shared_ptr<CommandProc> get_fg_proc() const { return services->proc_management->getFgProc(); }
 
     void kill_fg_proc();
 
     void forward_signal(int sigNum);
-
-    void print_terminalName();
-
-    // TODO: add extra methods as needed
 };
 
 #endif //SHELL_H
