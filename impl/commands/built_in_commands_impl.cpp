@@ -2,6 +2,7 @@
 // Created by Jamal Abo Mokh on 13/05/2026.
 //
 
+#include <iomanip>
 #include <unistd.h>
 
 #include "exceptions.h"
@@ -16,18 +17,22 @@ using std::string;
  */
 REGISTER_COMMAND(ChangeTerminalNameCommand);
 
-void ChangeTerminalNameCommand::execute() {
+void ChangeTerminalNameCommand::execute()
+{
     // get the current working env
     auto wenv = ctx.get_wenv();
 
     auto termName = params()
-            ->firstOrDefault();
+        ->firstOrDefault();
 
     // if the params is empty
-    if (termName.empty()) {
+    if (termName.empty())
+    {
         // reset to default if no arguments provided
         wenv->resetTerminalName();
-    } else {
+    }
+    else
+    {
         // otherwise set to first param
         wenv->setTerminalName(termName);
     }
@@ -38,7 +43,8 @@ void ChangeTerminalNameCommand::execute() {
  */
 REGISTER_COMMAND(JobsCommand);
 
-void JobsCommand::execute() {
+void JobsCommand::execute()
+{
     services->table->printJobsList();
 }
 
@@ -47,10 +53,12 @@ void JobsCommand::execute() {
  */
 REGISTER_COMMAND(QuitCommand)
 
-void QuitCommand::execute() {
+void QuitCommand::execute()
+{
     bool hasKill = params()->firstOrDefault() == "kill";
 
-    if (hasKill) {
+    if (hasKill)
+    {
         auto termName = ctx.get_wenv()->getTerminalName();
 
         // print current terminal name
@@ -68,7 +76,8 @@ void QuitCommand::execute() {
  */
 REGISTER_COMMAND(ShowPidCommand);
 
-void ShowPidCommand::execute() {
+void ShowPidCommand::execute()
+{
     std::cout << "smash pid is " << getpid() << std::endl;
 }
 
@@ -77,7 +86,8 @@ void ShowPidCommand::execute() {
  */
 REGISTER_COMMAND(GetCurrDirCommand);
 
-void GetCurrDirCommand::execute() {
+void GetCurrDirCommand::execute()
+{
     string currentDir = Shell::Utils::get_current_cwd();
 
     std::cout << currentDir << std::endl;
@@ -88,23 +98,29 @@ void GetCurrDirCommand::execute() {
  */
 REGISTER_COMMAND(ChangeDirCommand);
 
-void ChangeDirCommand::execute() {
+void ChangeDirCommand::execute()
+{
     auto path = params()->singleOrDefault<CommandTooManyArguments>();
     if (path.empty()) return;
 
     auto wenv = ctx.get_wenv();
 
-    if (path == "-") {
-        try {
+    if (path == "-")
+    {
+        try
+        {
             path = wenv->getLastWorkingDir();
-        } catch (const std::exception &) {
+        }
+        catch (const std::exception&)
+        {
             throw CommandErrorMessage("OLDPWD not set");
         }
     }
 
     // current state is [X]->[Y]
 
-    if (chdir(path.c_str()) == -1) {
+    if (chdir(path.c_str()) == -1)
+    {
         throw SyscallException("chdir");
     }
 
@@ -121,30 +137,51 @@ void ChangeDirCommand::execute() {
  */
 REGISTER_COMMAND(SysInfoCommand);
 
-void SysInfoCommand::execute() {
-    // struct utsname buf{};
-    //
-    // if (uname(&buf) == -1) {
-    //     throw SyscallException("uname");
-    // };
-    //
-    //
-    // std::cout << "System: " << buf.sysname << std::endl;
-    // std::cout << "Hostname: " << buf.domainname << std::endl;
-    // std::cout << "Kernel: " << buf.release  << std::endl;
-    // std::cout << "Version: " << buf.version << std::endl;
-    // std::cout << "Architecture: " << buf.machine  << std::endl;
-
-    string sysname  = Shell::Utils::read_all("/proc/sys/kernel/ostype");
+void SysInfoCommand::execute()
+{
+    string sysname = Shell::Utils::read_all("/proc/sys/kernel/ostype");
     string hostname = Shell::Utils::read_all("/proc/sys/kernel/hostname");
-    string release  = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
-    string version  = Shell::Utils::read_all("/proc/sys/kernel/version");
+    string release = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
+
+
+    string stat = Shell::Utils::read_all("/proc/stat");
+
+
+    std::regex pattern(R"((^|\n)btime\s+([0-9]+)(\n|$))");
+
+    std::smatch match;
+    if (!std::regex_search(stat, match, pattern))
+    {
+        throw std::logic_error("where is btime??");
+    }
+
+    long long btime = std::stoll(match[2].str());
+
+
+    // stackoverflow says so...
+    std::time_t boot_time = btime;
+    struct tm tm_buf{};
+    if (localtime_r(&boot_time, &tm_buf) == nullptr)
+    {
+        throw SyscallException("localtime_r");
+    }
+
+
+    // to find the arch (although also provides the other information readily)
+    struct utsname buf{};
+    //
+    if (uname(&buf) == -1)
+    {
+        throw SyscallException("uname");
+    };
 
     // since the read_all will also read the \n, so might as well just keep it (and don't add std::endl;)
     std::cout << "System: " << sysname;
     std::cout << "Hostname: " << hostname;
     std::cout << "Kernel: " << release;
-    std::cout << "Version: " << version;
+    std::cout << "Architecture: " << buf.machine << std::endl;
+    std::cout << "Boot Time: " << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S") << std::endl;
+
 
     //TODO: if not calling uname then where to get arch from?
 }

@@ -49,6 +49,10 @@ public:
         return proc;
     }
 
+    void printCmdWithPid() const
+    {
+        std::cout << cmd_line << " " << proc->pId << std::endl;
+    }
     // print without end line
     void printCmdLine() const
     {

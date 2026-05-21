@@ -112,11 +112,11 @@ namespace Shell {
         // }
 
         string _command(const string &cmd_line) {
-            return cmd_line.substr(0, cmd_line.find_first_of(" \n"));
+            return cmd_line.substr(0, cmd_line.find_first_of(WHITESPACE));
         }
 
         vector<string> _params(const string &trimmed) {
-            size_t firstSpace = trimmed.find_first_of(" \t");
+            size_t firstSpace = trimmed.find_first_of(WHITESPACE);
             string paramsRaw;
             if (firstSpace != string::npos) {
                 // Substr from char after space to end
@@ -145,11 +145,12 @@ namespace Shell {
         }
 
         bool contains_or(const std::string &str, std::vector<std::string> &patterns) {
-            for (auto& pattern : patterns) {
+            for (auto pattern : patterns) {
                 if (str.find_first_of(pattern) != string::npos) {
-                    return true;
+                    return  true;
                 }
             }
+            return false;
         }
 
         short check_child(pid_t pid) {

@@ -3,22 +3,32 @@
 //
 #include "context.h"
 
-std::shared_ptr<WorkingEnvironment> CommandCtx::get_wenv() const {
+std::shared_ptr<WorkingEnvironment> CommandCtx::get_wenv() const
+{
     return wenv;
 }
 
-const Parameters& CommandCtx::get_params() const {
+const Parameters& CommandCtx::get_params() const
+{
     return params;
 }
 
-std::string CommandCtx::get_cmdId() const {
+std::string CommandCtx::get_cmdId() const
+{
     return commandId;
 }
 
-CommandCtx::CommandFlags CommandCtx::get_flags() const {
+CommandCtx::CommandFlags& CommandCtx::get_flags()
+{
     return flags;
 }
 
-std::shared_ptr<Services> CommandCtx::get_services() const {
+const CommandCtx::CommandFlags& CommandCtx::get_flags() const
+{
+    return flags;
+}
+
+std::shared_ptr<Services> CommandCtx::get_services() const
+{
     return services;
 }

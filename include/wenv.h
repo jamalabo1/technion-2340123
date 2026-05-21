@@ -6,11 +6,15 @@
 #define WENV_H
 
 #include <string>
+#include <unistd.h>
 
+#include "exceptions.h"
+#include "utils.h"
 #include "ds/KindaStack.h"
 
 // working env, separated from the smash instance to enable it's sharing along other objects in the program if needed
-class WorkingEnvironment {
+class WorkingEnvironment
+{
 private:
     std::string terminalName;
     // default value
@@ -19,15 +23,19 @@ private:
 
     KindaStack<std::string> cds;
 
-
 public:
-    WorkingEnvironment(const std::string &appName) : terminalName(appName),
-                                                     appName(appName) {
+    WorkingEnvironment(const std::string& appName) : terminalName(appName),
+                                                     appName(appName)
+    {
+        const std::string currentDir = Shell::Utils::get_current_cwd();
+
+        // set the current directory
+        pushDir(currentDir);
     }
 
     std::string getTerminalName();
 
-    void setTerminalName(const std::string &terminalName);
+    void setTerminalName(const std::string& terminalName);
 
     // resets terminal name into the app name
     void resetTerminalName();
@@ -39,7 +47,7 @@ public:
 
     std::string getCurrentWorkingDir() const;
 
-    void pushDir(const std::string &cd);
+    void pushDir(const std::string& cd);
 };
 
 

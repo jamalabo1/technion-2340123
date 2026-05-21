@@ -286,9 +286,3 @@ void SmallShell::forward_signal(int sigNum) {
     }
 }
 
-void SmallShell::populateCWD() {
-    string currentDir = Shell::Utils::get_current_cwd();
-
-    // set the current directory
-    wenv->pushDir(currentDir);
-}

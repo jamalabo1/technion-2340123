@@ -6,15 +6,24 @@
 #define ALIASES_H
 #include <map>
 #include <string>
+#include <vector>
 
 // #include "command_factory.h"
 
 class Aliases
 {
 private:
-    std::map<std::string, std::string> aliases;
+    struct AliasNode
+    {
+        int id;
+        std::string key;
+        std::string value;
+    };
 
-    // std::shared_ptr<CommandFactory> factory_;
+    std::map<std::string, AliasNode> aliases;
+
+    int counter;
+    // I could use double AVLs for to save my self the ordering, but come on.
 
     bool containsAlias(const std::string& alias);
 
@@ -25,7 +34,8 @@ public:
 
     bool removeAlias(const std::string& alias);
 
-    std::map<std::string, std::string> mapList();
+    // <key, alias> ordered by key ASC
+    std::vector<std::pair<std::string, std::string>> mapList();
 
     std::string tokenize(const std::string& word);
 };

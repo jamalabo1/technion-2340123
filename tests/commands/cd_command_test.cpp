@@ -11,100 +11,116 @@
 #include "exceptions.h"
 #include "services.h"
 
-namespace {
-
-std::string getCwd() {
-    char* raw = getcwd(nullptr, 0);
-    if (raw == nullptr) {
-        throw std::runtime_error("getcwd failed");
-    }
-
-    std::string cwd(raw);
-    free(raw);
-    return cwd;
-}
-
-class TempDir {
-public:
-    TempDir() {
-        char path_template[] = "/tmp/smash_cd_test_XXXXXX";
-        char* created = mkdtemp(path_template);
-        if (created == nullptr) {
-            throw std::runtime_error("mkdtemp failed");
+namespace
+{
+    std::string getCwd()
+    {
+        char* raw = getcwd(nullptr, 0);
+        if (raw == nullptr)
+        {
+            throw std::runtime_error("getcwd failed");
         }
-        root_ = created;
+
+        std::string cwd(raw);
+        free(raw);
+        return cwd;
     }
 
-    ~TempDir() {
-        for (auto it = children_.rbegin(); it != children_.rend(); ++it) {
-            rmdir(it->c_str());
+    class TempDir
+    {
+    public:
+        TempDir()
+        {
+            char path_template[] = "/tmp/smash_cd_test_XXXXXX";
+            char* created = mkdtemp(path_template);
+            if (created == nullptr)
+            {
+                throw std::runtime_error("mkdtemp failed");
+            }
+            root_ = created;
         }
-        rmdir(root_.c_str());
-    }
 
-    const std::string& root() const {
-        return root_;
-    }
-
-    std::string makeSubdir(const std::string& name) {
-        std::string path = root_ + "/" + name;
-        if (mkdir(path.c_str(), 0700) == -1) {
-            throw std::runtime_error("mkdir failed");
+        ~TempDir()
+        {
+            for (auto it = children_.rbegin(); it != children_.rend(); ++it)
+            {
+                rmdir(it->c_str());
+            }
+            rmdir(root_.c_str());
         }
-        children_.push_back(path);
-        return path;
+
+        const std::string& root() const
+        {
+            return root_;
+        }
+
+        std::string makeSubdir(const std::string& name)
+        {
+            std::string path = root_ + "/" + name;
+            if (mkdir(path.c_str(), 0700) == -1)
+            {
+                throw std::runtime_error("mkdir failed");
+            }
+            children_.push_back(path);
+            return path;
+        }
+
+    private:
+        std::string root_;
+        std::vector<std::string> children_;
+    };
+
+    class ScopedCwd
+    {
+    public:
+        ScopedCwd() : original_(getCwd())
+        {
+        }
+
+        ~ScopedCwd()
+        {
+            chdir(original_.c_str());
+        }
+
+    private:
+        std::string original_;
+    };
+
+    std::shared_ptr<Services> makeServices()
+    {
+        return std::make_shared<Services>(
+            std::make_shared<JobTable>(),
+            std::make_shared<CommandProcManagement>(),
+            std::make_shared<Aliases>(),
+            std::make_shared<ChildTracker>()
+        );
     }
 
-private:
-    std::string root_;
-    std::vector<std::string> children_;
-};
-
-class ScopedCwd {
-public:
-    ScopedCwd() : original_(getCwd()) {
+    std::shared_ptr<WorkingEnvironment> makePopulatedWenv()
+    {
+        auto wenv = std::make_shared<WorkingEnvironment>("smash");
+        wenv->pushDir(getCwd());
+        return wenv;
     }
 
-    ~ScopedCwd() {
-        chdir(original_.c_str());
+    void runCd(
+        const std::shared_ptr<WorkingEnvironment>& wenv,
+        const std::shared_ptr<Services>& services,
+        const std::vector<std::string>& args
+    )
+    {
+        Parameters params(args);
+        CommandCtx::CommandFlags flags;
+        flags.isBackground = false;
+
+        CommandCtx ctx("cd", wenv, params, flags, services);
+        ChangeDirCommand command(ctx);
+        command.run();
     }
-
-private:
-    std::string original_;
-};
-
-std::shared_ptr<Services> makeServices() {
-    return std::make_shared<Services>(
-        std::make_shared<JobTable>(),
-        std::make_shared<CommandProcManagement>(),
-        std::make_shared<Aliases>(),
-        std::make_shared<ChildTracker>()
-    );
-}
-
-std::shared_ptr<WorkingEnvironment> makePopulatedWenv() {
-    auto wenv = std::make_shared<WorkingEnvironment>("smash");
-    wenv->pushDir(getCwd());
-    return wenv;
-}
-
-void runCd(
-    const std::shared_ptr<WorkingEnvironment>& wenv,
-    const std::shared_ptr<Services>& services,
-    const std::vector<std::string>& args
-) {
-    Parameters params(args);
-    CommandCtx::CommandFlags flags;
-    flags.isBackground = false;
-
-    CommandCtx ctx("cd", wenv, params, flags, services);
-    ChangeDirCommand command(ctx);
-    command.run();
-}
-
 } // namespace
 
-TEST(ChangeDirCommandTest, NoArgumentsDoesNotChangeDirectory) {
+TEST(ChangeDirCommandTest, NoArgumentsDoesNotChangeDirectory)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
     ASSERT_EQ(0, chdir(temp.root().c_str()));
@@ -117,7 +133,8 @@ TEST(ChangeDirCommandTest, NoArgumentsDoesNotChangeDirectory) {
     EXPECT_EQ(temp.root(), getCwd());
 }
 
-TEST(ChangeDirCommandTest, ChangesToRequestedDirectory) {
+TEST(ChangeDirCommandTest, ChangesToRequestedDirectory)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
     const std::string target = temp.makeSubdir("target");
@@ -131,7 +148,8 @@ TEST(ChangeDirCommandTest, ChangesToRequestedDirectory) {
     EXPECT_EQ(target, getCwd());
 }
 
-TEST(ChangeDirCommandTest, StoresResolvedDirectoryWhenChangingWithRelativePath) {
+TEST(ChangeDirCommandTest, StoresResolvedDirectoryWhenChangingWithRelativePath)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
     const std::string target = temp.makeSubdir("target");
@@ -153,7 +171,8 @@ TEST(ChangeDirCommandTest, StoresResolvedDirectoryWhenChangingWithRelativePath) 
     EXPECT_EQ(target, wenv->getLastWorkingDir());
 }
 
-TEST(ChangeDirCommandTest, RejectsTooManyArgumentsWithoutChangingDirectory) {
+TEST(ChangeDirCommandTest, RejectsTooManyArgumentsWithoutChangingDirectory)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
     const std::string first = temp.makeSubdir("first");
@@ -167,25 +186,31 @@ TEST(ChangeDirCommandTest, RejectsTooManyArgumentsWithoutChangingDirectory) {
     EXPECT_EQ(temp.root(), getCwd());
 }
 
-TEST(ChangeDirCommandTest, DashWithoutPreviousDirectoryReportsOldpwdNotSet) {
+TEST(ChangeDirCommandTest, DashWithoutPreviousDirectoryReportsOldpwdNotSet)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
-    ASSERT_EQ(0, chdir(temp.root().c_str()));
+    int chdirResult = chdir(temp.root().c_str());
+    ASSERT_EQ(0, chdirResult);
 
     auto wenv = std::make_shared<WorkingEnvironment>("smash");
     auto services = makeServices();
 
-    try {
+    try
+    {
         runCd(wenv, services, {"-"});
         FAIL() << "expected cd - to fail before any successful cd";
-    } catch (const CommandDomainError& e) {
+    }
+    catch (const CommandDomainError& e)
+    {
         EXPECT_STREQ("OLDPWD not set", e.what());
     }
 
     EXPECT_EQ(temp.root(), getCwd());
 }
 
-TEST(ChangeDirCommandTest, DashReturnsToPreviousDirectoryAfterOneSuccessfulCd) {
+TEST(ChangeDirCommandTest, DashReturnsToPreviousDirectoryAfterOneSuccessfulCd)
+{
     TempDir temp;
     ScopedCwd cwd_guard;
     const std::string target = temp.makeSubdir("target");

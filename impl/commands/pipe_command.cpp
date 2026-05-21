@@ -31,7 +31,7 @@ void PipeCommand::execute() {
         // now change the fds for child1
         // std::cout <<" child1 pid " << getgid() << std::endl;
 
-        // for the child1 perspective, it's only going to write, so close the read
+        // for the child1 perspective, it's only going to write, so close the read arrow
         CLOSE(fd[0]);
 
         // primitive but effective.
@@ -63,7 +63,7 @@ void PipeCommand::execute() {
         // and we want to wire the pipe instead of stdin
         DUP2(fd[0], STDIN_FILENO);
 
-        //then close
+        //then close the pipe original place
         CLOSE(fd[0]);
 
         // change for child2

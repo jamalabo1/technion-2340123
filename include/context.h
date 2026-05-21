@@ -15,9 +15,11 @@
 
 
 // command context (instead of drilling the params, and to allow future expansion)
-class CommandCtx {
+class CommandCtx
+{
 public:
-    struct CommandFlags {
+    struct CommandFlags
+    {
         bool isBackground;
     };
 
@@ -39,16 +41,17 @@ private:
 public:
     CommandCtx(
         std::string cmd_id,
-        const std::shared_ptr<WorkingEnvironment> &wenv,
+        const std::shared_ptr<WorkingEnvironment>& wenv,
         const Parameters& params,
         const CommandFlags& flags,
-        const std::shared_ptr<Services> &services
+        const std::shared_ptr<Services>& services
     )
         : commandId(std::move(cmd_id)),
           params(params),
           wenv(wenv),
           flags(flags),
-          services(services) {
+          services(services)
+    {
     }
 
     std::shared_ptr<WorkingEnvironment> get_wenv() const;
@@ -57,7 +60,8 @@ public:
 
     std::string get_cmdId() const;
 
-    CommandFlags get_flags() const;
+    CommandFlags& get_flags();
+    const CommandFlags& get_flags() const;
 
     std::shared_ptr<Services> get_services() const;
 };

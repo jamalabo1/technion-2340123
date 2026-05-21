@@ -21,23 +21,27 @@ void AliasCommand::prepare()
 {
     auto param = params()->concat();
 
-    if (!param.empty())
+    // no param
+    if (param.empty())
     {
-        auto args = Shell::Utils::_split(param, "=");
-
-        if (args.size() != 2) throw AliasInvalidFormatException();
-
-        //TODO: validate alias
-        alias = args[0];
-        command = args[1];
-
-        //TODO: check if no edge cases are to be present
-        // remove the quotes
-        command = command.substr(1, command.size() - 2);
+        listAll = true;
         return;
     }
-    listAll = true;
+
+    std::smatch match;
+    // group 1: ([a-zA-Z0-9_]+) matches the alias name
+    // group 2: ([^']*) matches the command inside the single quotes
+    std::regex pattern("^([a-zA-Z0-9_]+)='([^']*)'$");
+
+    if (!std::regex_match(param, match, pattern))
+    {
+        throw AliasInvalidFormatException();
+    }
+
+    alias = match[1].str();
+    command = match[2].str(); // and it already excludes the quotes
 }
+
 
 void AliasCommand::execute()
 {
@@ -49,7 +53,7 @@ void AliasCommand::execute()
 
         for (auto& alias : aliases)
         {
-            std::cout << alias.first << "=" << alias.second << std::endl;
+            std::cout << alias.first << "=" << "\'" << alias.second << "\'" << std::endl;
         }
 
         return;
@@ -64,19 +68,23 @@ void AliasCommand::execute()
 
 REGISTER_COMMAND(UnAliasCommand)
 
-void UnAliasCommand::execute() {
+void UnAliasCommand::execute()
+{
     //Since no preparations are used, for compactness do the validation in here
 
     auto pList = params()->list();
 
-    if (pList.empty()) {
+    if (pList.empty())
+    {
         throw CommandNotEnoughArguments();
     }
 
     auto aliasService = services->aliases;
 
-    for (auto& alias : pList) {
-        if (!aliasService->removeAlias(alias)) {
+    for (auto& alias : pList)
+    {
+        if (!aliasService->removeAlias(alias))
+        {
             throw CommandErrorMessage(alias + " alias does not exist");
         }
     }

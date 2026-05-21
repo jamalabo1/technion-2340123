@@ -19,7 +19,7 @@ TEST(KindaStackTest, SingleValueIsCurrentAndPreviousIsUnusedSlot) {
 
     EXPECT_EQ(1u, stack.size());
     EXPECT_EQ("first", stack.top());
-    EXPECT_EQ("", stack.previous());
+    EXPECT_THROW(stack.previous(), std::runtime_error);
 }
 
 TEST(KindaStackTest, TracksCurrentAndPreviousValues) {
@@ -57,12 +57,13 @@ TEST(KindaStackTest, MyUnderstanding) {
     // what's the current dir?
     EXPECT_EQ(stack.top(), "first");
 
-    EXPECT_EQ(stack.previous(), "");
+    EXPECT_THROW(stack.previous(), std::runtime_error);
 
     stack.push("second");
 
     // what's the current dir?
     EXPECT_EQ(stack.top(), "second");
+    EXPECT_EQ(stack.previous(), "first");
 
     // ok use previous to loop
     stack.push(
