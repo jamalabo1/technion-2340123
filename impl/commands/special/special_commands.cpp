@@ -22,6 +22,9 @@ void WhoAmICommand::execute() {
 
     // then call the getpwuid which has username and group id
     struct passwd *p = getpwuid(uid);
+    if (p == nullptr) {
+        throw SyscallException("getpwuid");
+    }
 
     // user name
     std::cout << p->pw_name << std::endl;

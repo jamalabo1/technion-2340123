@@ -46,6 +46,8 @@ namespace Shell
         // called from the above method after opening a file
         std::string read_all_f(FILE* file);
 
+        std::string get_current_cwd() ;
+
     }
 }
 

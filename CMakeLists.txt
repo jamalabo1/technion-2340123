@@ -10,13 +10,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 #)
 FILE(GLOB headers "include/*.h")
 
-add_executable(skeleton_smash
-
+add_library(skeleton_smash_lib
+OBJECT
         include/ds/avl.h
         impl/ds/avl.cpp
         impl/ds/avl_init.cpp
 
-        smash.cpp
         Commands.cpp
         signals.cpp
 
@@ -56,7 +55,19 @@ add_executable(skeleton_smash
 
 )
 
+target_include_directories(skeleton_smash_lib PUBLIC include)
+
+add_executable(skeleton_smash
+        smash.cpp
+)
+
+target_link_libraries(skeleton_smash PUBLIC skeleton_smash_lib)
+
 add_executable(test_err test_err.cpp)
 
 
-target_include_directories(skeleton_smash PUBLIC include)
+include(tester.cmake)
+
+ds_tester_attach(skeleton_smash_lib HW tests)
+
+enable_testing()

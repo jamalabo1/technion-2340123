@@ -7,7 +7,7 @@
 
 #include "exceptions.h"
 
-ChildTracker::ChildTracker() {
+ChildTracker::ChildTracker() : isChild(false) {
 }
 
 int ChildTracker::fork() {

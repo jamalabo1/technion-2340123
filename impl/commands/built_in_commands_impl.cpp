@@ -78,13 +78,9 @@ void ShowPidCommand::execute() {
 REGISTER_COMMAND(GetCurrDirCommand);
 
 void GetCurrDirCommand::execute() {
-    // according to man7, nullptr, 0 in posix glibc ext, dynamically allocates the buffer's size.
-    // but it's our responsibility to free it
-    char *buf = getcwd(nullptr, 0);
+    string currentDir = Shell::Utils::get_current_cwd();
 
-    std::cout << buf << std::endl;
-
-    free(buf);
+    std::cout << currentDir << std::endl;
 }
 
 /*
@@ -112,9 +108,11 @@ void ChangeDirCommand::execute() {
         throw SyscallException("chdir");
     }
 
+    string resolvedPath = Shell::Utils::get_current_cwd();
+
     // we want the new one to be [Y]->[X]
     // so we need to push [Y]
-    wenv->pushDir(path);
+    wenv->pushDir(resolvedPath);
 }
 
 

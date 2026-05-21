@@ -92,7 +92,7 @@ public:
 // UnSetEnvCommand
 DEFINE_COMMAND("unsetenv", UnSetEnvCommand, BuiltInCommand);
 
-// UnSetEnvCommand
+// SysInfoCommand
 DEFINE_COMMAND("sysinfo", SysInfoCommand, BuiltInCommand);
 
 #endif //BUILT_IN_H

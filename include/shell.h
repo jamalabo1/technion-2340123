@@ -59,6 +59,8 @@ public:
     void kill_fg_proc();
 
     void forward_signal(int sigNum);
+
+    void populateCWD();
 };
 
 #endif //SHELL_H

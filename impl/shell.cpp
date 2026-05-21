@@ -285,3 +285,10 @@ void SmallShell::forward_signal(int sigNum) {
         std::cout << termName << ":" << " process " << proc->pId << " was killed" << std::endl;
     }
 }
+
+void SmallShell::populateCWD() {
+    string currentDir = Shell::Utils::get_current_cwd();
+
+    // set the current directory
+    wenv->pushDir(currentDir);
+}

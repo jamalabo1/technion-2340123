@@ -21,8 +21,6 @@ void ExternalCommand::execute() {
     // normalized args
     auto concated = p->concat();
 
-    std::regex complex_ptrn(R"([?*])");
-
     static vector<string> pat = {"*", "?"};
 
     bool isComplex = Shell::Utils::contains_or(concated, pat);

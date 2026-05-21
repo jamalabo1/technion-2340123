@@ -174,13 +174,13 @@ namespace Shell {
         }
 
         string read_all(const string& path) {
-            FILE* fd = fopen(path.c_str(), O_RDONLY);
+            FILE* fd = fopen(path.c_str(), "r");
 
             if (fd == nullptr) {
                 throw SyscallException("open");
             }
 
-            read_all_f(fd);
+            return read_all_f(fd);
         }
         std::string read_all_f(FILE *fd) {
             char buf[512];
@@ -200,7 +200,7 @@ namespace Shell {
                 // if we have any data, then add it
                 if (bytes > 0) {
                     // add the received data
-                    data.append(buf, bytes);
+                    data += string(buf, bytes);
                 }
 
                 // we didnt get data as much as we requested, so there will be no further data to be read.
@@ -211,6 +211,23 @@ namespace Shell {
             }
 
             return data;
+        }
+
+        std::string get_current_cwd() {
+            // according to man7, nullptr, 0 in posix glibc ext, dynamically allocates the buffer's size.
+            // but it's our responsibility to free it
+            char *buf = getcwd(nullptr, 0);
+            if (buf == nullptr) {
+                throw SyscallException("getcwd");
+            }
+
+            // copy the results (it's null terminated)
+            string result(buf);
+
+            // then free it
+            free(buf);
+
+            return result;
         }
 
     }

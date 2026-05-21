@@ -16,6 +16,8 @@ int main(int argc, char* argv[]) {
 
     SmallShell& smash = SmallShell::getInstance();
 
+    smash.populateCWD();
+
     while (true)
     {
         std::string termName = smash.get_terminalName();

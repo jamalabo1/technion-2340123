@@ -35,7 +35,7 @@ public:
 
     // older element
     const T& previous() const {
-        if (size_ == 0) throw std::runtime_error("no previous");
+        if (size_ < 1) throw std::runtime_error("no previous");
         return data_[next_];
     }
 };

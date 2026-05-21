@@ -77,7 +77,7 @@ void UnAliasCommand::execute() {
 
     for (auto& alias : pList) {
         if (!aliasService->removeAlias(alias)) {
-            throw CommandErrorMessage(alias + " does not exist");
+            throw CommandErrorMessage(alias + " alias does not exist");
         }
     }
 }
