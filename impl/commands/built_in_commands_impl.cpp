@@ -136,21 +136,17 @@ void SysInfoCommand::execute() {
     // std::cout << "Kernel: " << buf.release  << std::endl;
     // std::cout << "Version: " << buf.version << std::endl;
     // std::cout << "Architecture: " << buf.machine  << std::endl;
-    std::string sysname  = Shell::Utils::read_all("/proc/sys/kernel/ostype");
 
-    std::string hostname = Shell::Utils::read_all("/proc/sys/kernel/hostname");
+    string sysname  = Shell::Utils::read_all("/proc/sys/kernel/ostype");
+    string hostname = Shell::Utils::read_all("/proc/sys/kernel/hostname");
+    string release  = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
+    string version  = Shell::Utils::read_all("/proc/sys/kernel/version");
 
-    std::string release  = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
-
-    std::string version  = Shell::Utils::read_all("/proc/sys/kernel/version");
-
-    // since the read_all will also read the \n, so might as well just keep it
+    // since the read_all will also read the \n, so might as well just keep it (and don't add std::endl;)
     std::cout << "System: " << sysname;
-
     std::cout << "Hostname: " << hostname;
-
     std::cout << "Kernel: " << release;
-
     std::cout << "Version: " << version;
 
+    //TODO: if not calling uname then where to get arch from?
 }

@@ -174,12 +174,15 @@ namespace Shell {
         }
 
         string read_all(const string& path) {
-            int fd = open(path.c_str(), O_RDONLY);
+            FILE* fd = fopen(path.c_str(), O_RDONLY);
 
-            if (fd == -1) {
+            if (fd == nullptr) {
                 throw SyscallException("open");
             }
 
+            read_all_f(fd);
+        }
+        std::string read_all_f(FILE *fd) {
             char buf[512];
 
             string data;
@@ -187,11 +190,11 @@ namespace Shell {
             static constexpr int SIZE =sizeof(buf);
 
             while (true) {
-                int bytes = read(fd, buf, SIZE);
+                int bytes = fread(buf, sizeof(char), SIZE, fd);
                 // read failed
                 if (bytes == -1) {
                     //close and report
-                    close(fd);
+                    fclose(fd);
                     throw SyscallException("read");
                 }
                 // if we have any data, then add it
@@ -202,12 +205,13 @@ namespace Shell {
 
                 // we didnt get data as much as we requested, so there will be no further data to be read.
                 if (bytes < SIZE) {
-                    close(fd);
+                    fclose(fd);
                     break; // EOF
                 }
             }
 
             return data;
         }
+
     }
 }

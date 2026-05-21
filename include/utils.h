@@ -42,6 +42,10 @@ namespace Shell
         short check_child(pid_t pid);
 
         std::string read_all(const std::string& path);
+
+        // called from the above method after opening a file
+        std::string read_all_f(FILE* file);
+
     }
 }
 
