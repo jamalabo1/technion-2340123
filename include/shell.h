@@ -9,7 +9,8 @@
 #include "services/job_table.h"
 #include "commands/all.h"
 
-class SmallShell {
+class SmallShell
+{
 private:
     SmallShell();
 
@@ -28,7 +29,6 @@ private:
     // services
     std::shared_ptr<Services> services;
 
-
 private:
     Command* _handleIo(std::string cmd_s, int ioPos);
 
@@ -37,7 +37,7 @@ private:
     Command* _createPipe(Command* cmd1, Command* cmd2, std::vector<std::string> paramsList) const;
 
 public:
-    Command* CreateCommand(const char* cmd_line);
+    Command* CreateCommand(const char* cmd_line, bool tokenizeAlias = true);
 
     SmallShell(SmallShell const&) = delete; // disable copy ctor
     void operator=(SmallShell const&) = delete; // disable = operator
@@ -59,7 +59,6 @@ public:
     void kill_fg_proc();
 
     void forward_signal(int sigNum);
-
 };
 
 #endif //SHELL_H

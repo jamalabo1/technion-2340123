@@ -22,14 +22,14 @@ namespace Shell
 
         int _parseCommandLine(const char* cmd_line, char** args);
 
-        bool _checkAndRemoveBgCommand(std::string &cmd);
+        bool _checkAndRemoveBgCommand(std::string& cmd);
 
         // bool _isBackgroundComamnd(const char* cmd_line);
 
         // void _removeBackgroundSign(std::string& cmd_line);
 
         bool regex_contains(const std::string& str, const std::regex& regex);
-        bool contains_or(const std::string& str,  std::vector<std::string>& patterns);
+        bool contains_or(const std::string& str, std::vector<std::string>& patterns);
 
         std::string _command(const std::string& cmd_line);
 
@@ -46,8 +46,10 @@ namespace Shell
         // called from the above method after opening a file
         std::string read_all_f(FILE* file);
 
-        std::string get_current_cwd() ;
+        std::string get_current_cwd();
 
+        // TODO: check if hex are acceptable (std::stoi)
+        int parseInt(const std::string& s);
     }
 }
 
