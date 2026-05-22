@@ -11,27 +11,49 @@
 #include "commands/special.h"
 
 
+using namespace std;
+
 REGISTER_COMMAND(WhoAmICommand);
 
-void WhoAmICommand::execute() {
+void WhoAmICommand::execute()
+{
     // user id
-    uid_t uid = getuid();
-    if (uid == -1) {
+    const uid_t uid = getuid();
+    if (uid == -1)
+    {
         throw SyscallException("getuid");
     }
 
-    // then call the getpwuid which has username and group id
-    struct passwd *p = getpwuid(uid);
-    if (p == nullptr) {
-        throw SyscallException("getpwuid");
+    // read the content
+    const string passwd = Shell::Utils::read_all("/etc/passwd");
+
+    vector<string> entries = Shell::Utils::_split(passwd, "\n");
+
+    string username;
+    string gid;
+    string dir;
+
+    for (const auto& entry : entries)
+    {
+        vector<string> fields = Shell::Utils::_split(entry, ":");
+        // if this is the entry of this uid
+        if (fields[2] == to_string(uid))
+        {
+            // according to man7 the format is
+            // name:password:UID:GID:GECOS:directory:shell
+
+            username = fields[0];
+            gid = fields[3];
+            dir = fields[5];
+        }
     }
 
-    // user name
-    std::cout << p->pw_name << std::endl;
+    //user name
+    std::cout << username << std::endl;
     // user id
     std::cout << uid << std::endl;
-    //group id
-    std::cout << p->pw_gid << std::endl;
-    //home dir id
-    std::cout << p->pw_dir << std::endl;
+    // group id
+    std::cout << gid << std::endl;
+    // home dir id
+    std::cout << dir << std::endl;
 }

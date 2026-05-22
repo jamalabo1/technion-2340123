@@ -24,6 +24,7 @@ void KillCommand::prepare()
 
     try
     {
+        //TODO: check if hex bases are also accepted?
         sigNum = std::stoi(sigExpr.substr(1));
         jobId = std::stoi(pList[1]);
     }

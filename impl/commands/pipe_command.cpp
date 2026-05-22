@@ -29,7 +29,6 @@ void PipeCommand::execute() {
 
     if (child1 == 0) {
         // now change the fds for child1
-        // std::cout <<" child1 pid " << getgid() << std::endl;
 
         // for the child1 perspective, it's only going to write, so close the read arrow
         CLOSE(fd[0]);
@@ -55,8 +54,6 @@ void PipeCommand::execute() {
     int child2 = services->children->fork();
 
     if (child2 == 0) {
-        // std::cout <<" child2 pid " << getpid() << std::endl;
-
         // child2 does not writes to the pipe so
         CLOSE(fd[1]);
 

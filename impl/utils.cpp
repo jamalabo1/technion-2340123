@@ -181,6 +181,7 @@ namespace Shell {
                 throw SyscallException("open");
             }
 
+            // read_all_f closes the file
             return read_all_f(fd);
         }
         std::string read_all_f(FILE *fd) {

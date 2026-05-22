@@ -6,6 +6,7 @@
 #define ALIASES_H
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // #include "command_factory.h"
@@ -20,7 +21,8 @@ private:
         std::string value;
     };
 
-    std::map<std::string, AliasNode> aliases;
+    // hashtable
+    std::unordered_map<std::string, AliasNode> aliases;
 
     int counter;
     // I could use double AVLs for to save my self the ordering, but come on.

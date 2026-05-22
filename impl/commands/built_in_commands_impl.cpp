@@ -142,10 +142,7 @@ void SysInfoCommand::execute()
     string sysname = Shell::Utils::read_all("/proc/sys/kernel/ostype");
     string hostname = Shell::Utils::read_all("/proc/sys/kernel/hostname");
     string release = Shell::Utils::read_all("/proc/sys/kernel/osrelease");
-
-
     string stat = Shell::Utils::read_all("/proc/stat");
-
 
     std::regex pattern(R"((^|\n)btime\s+([0-9]+)(\n|$))");
 
@@ -167,6 +164,9 @@ void SysInfoCommand::execute()
     }
 
 
+    //TODO: if not calling uname then where to get arch from? and besides even if they try to create a diff in the uname, /proc/ files
+    // I don't think they will "fake" the arch right?
+
     // to find the arch (although also provides the other information readily)
     struct utsname buf{};
     //
@@ -181,7 +181,4 @@ void SysInfoCommand::execute()
     std::cout << "Kernel: " << release;
     std::cout << "Architecture: " << buf.machine << std::endl;
     std::cout << "Boot Time: " << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S") << std::endl;
-
-
-    //TODO: if not calling uname then where to get arch from?
 }

@@ -14,7 +14,7 @@ class CommandFactory {
 private:
     using FactoryInstanceCreatorType = std::function<Command*(CommandCtx)>;
 
-    std::map<std::string, FactoryInstanceCreatorType> table;
+    std::unordered_map<std::string, FactoryInstanceCreatorType> table;
 
     bool _containsCommand(const std::string &key) {
         return table.find(key) != table.end();

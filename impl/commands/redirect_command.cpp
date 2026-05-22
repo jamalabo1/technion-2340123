@@ -18,41 +18,6 @@ void FileWrapperProxy::prepare()
 
 void FileWrapperProxy::execute()
 {
-    // // we are just a proxy to open the file and let command write to it through its stdout (new fd).
-    //
-    // int proxy = services->children->fork();
-    //
-    //
-    // if (proxy == 0) {
-    //     //child
-    //     int flags = O_WRONLY | O_CREAT | (isAppend ? O_APPEND : O_TRUNC);
-    //
-    //     int fd = open(fileName.c_str(), flags, 0666);
-    //
-    //     if (fd == -1) {
-    //         throw SyscallException("open");
-    //     }
-    //
-    //     if (dup2(fd, STDOUT_FILENO) == -1) {
-    //         throw SyscallException("dup2");
-    //     }
-    //
-    //     // must be before execute since if it's execv we cannot close afterward.
-    //     close(fd);
-    //
-    //     // but also prepare
-    //     cmd->run();
-    //
-    //     //if not execv
-    //     exit(0);
-    // }
-    //
-    // // treat it as a proc
-    // setProc(proxy);
-    //
-    // // we can make it bg by a simple flag, and it already handles signals.
-    // services->proc_management->setAndWaitFgProc(proc);
-
     // ok so we want to run the builtin commands on the parent, so we don't want to fork, and let the execute command handle forking if they want. all I have to do is
     // temp change the parent stdout into the file and then return it after execution.
 
@@ -68,32 +33,58 @@ void FileWrapperProxy::execute()
         throw SyscallException("open");
     }
 
-    int temp_stdout = dup(STDOUT_FILENO);
+    const int temp_stdout = dup(STDOUT_FILENO);
     if (temp_stdout == -1)
     {
+        // close the file
+        close(fd);
         throw SyscallException("dup");
     }
 
     // move the file into stdout so that we write into it instead
     if (dup2(fd, STDOUT_FILENO) == -1)
     {
+        // close
+        close(temp_stdout);
+        close(fd);
         throw SyscallException("dup2");
     }
 
-    // run the command
-    cmd->run();
-
-    // close the file
+    // now the fd arrow is not required, because we have the stdout arrow
     if (close(fd) == -1)
     {
+        // again restore stdout before throwing original
+        dup2(temp_stdout, STDOUT_FILENO);
+        close(temp_stdout);
+
         throw SyscallException("close");
     }
 
-    // then return the original
+    try
+    {
+        // run the command
+        cmd->run();
+        //we are sure to return here since execv's run in a forked children
+    }
+    catch (...)
+    {
+        // not checking for errors because we want to report the original error
+        // and if these fail then it's out of our control (maybe os refusing everything?)
+        dup2(temp_stdout, STDOUT_FILENO);
+        close(fd);
+
+        throw;
+    }
+
+    //  return the original
     if (dup2(temp_stdout, STDOUT_FILENO) == -1)
     {
         throw SyscallException("dup2");
     }
 
-
+    // close the file
+    if (close(temp_stdout) == -1)
+    {
+        throw SyscallException("close");
+    }
 }

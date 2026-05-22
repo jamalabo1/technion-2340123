@@ -260,8 +260,8 @@ void SmallShell::kill_fg_proc() {
     // get the proc
     auto proc = get_fg_proc();
 
-    // send SIGINT the proc
-    SignalProc(proc->pId, SIGINT);
+    // send SIGKILL the proc
+    SignalProc(proc->pId, SIGKILL);
 
     // proc was killed
     // note; this should not matter, since now we are removing it from job entry and it should be freed, but keeping it for assertion purposes

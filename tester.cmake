@@ -82,6 +82,10 @@ function(ds_tester_attach student_target)
         #include the headers
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include)
 
+        if (TARGET skeleton_smash)
+            add_dependencies(${test_target} skeleton_smash)
+        endif ()
+
         include(GoogleTest)
         gtest_discover_tests(${test_target})
     else ()

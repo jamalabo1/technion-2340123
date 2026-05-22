@@ -111,13 +111,15 @@ TEST(PipeCommandTest, PipeAmpersandPipesStderrFromFirstCommandIntoSecondCommand)
     const std::string script = temp.makeExecutableScript(
         "write_stderr.sh",
         "#!/bin/sh\n"
-        "echo stdout-line\n"
         "echo stderr-line >&2\n"
     );
 
-    const test_support::ChildRunResult result = test_support::runInChildCapturingStdout([&]() {
-        runOwned(SmallShell::getInstance().CreateCommand((script + " |& /usr/bin/grep stderr-line").c_str()));
-    });
+    const test_support::ChildRunResult result =
+        test_support::runInChildCapturingStdout([&]() {
+            runOwned(SmallShell::getInstance().CreateCommand(
+                (script + " |& /usr/bin/grep stderr-line").c_str()
+            ));
+        });
 
     ASSERT_TRUE(WIFEXITED(result.status));
     ASSERT_EQ(0, WEXITSTATUS(result.status));

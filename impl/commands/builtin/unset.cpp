@@ -2,6 +2,7 @@
 // Created by jamal on 20/05/2026.
 //
 #include <unistd.h>
+#include <unordered_map>
 
 #include "exceptions.h"
 #include "utils.h"
@@ -14,31 +15,29 @@ using std::vector;
  */
 REGISTER_COMMAND(UnSetEnvCommand);
 
-void UnSetEnvCommand::execute() {
+void UnSetEnvCommand::execute()
+{
     //TODO: do I have to make sync with /proc/ and __environ?
     auto pList = params()->list();
-    if (pList.empty()) {
+    if (pList.empty())
+    {
         throw CommandNotEnoughArguments();
     }
 
     // environ path
     std::string environ = "/proc/" + std::to_string(getpid()) + "/environ";
 
-    // read the environ
-    FILE *env = fopen(environ.c_str(), "r");
-    if (env == nullptr) {
-        throw SyscallException("fopen");
-    }
-
     // read everything from the file
-    string env_vars_raw = Shell::Utils::read_all_f(env);
+    string env_vars_raw = Shell::Utils::read_all(environ);
 
     // after reading the raw data, we use our beloved cpp to process
     std::vector<string> env_vars;
-    int start = 0;
-    while (start < env_vars_raw.size()) {
-        int end = env_vars_raw.find('\0', start);
-        if (end == std::string::npos) {
+    size_t start = 0;
+    while (start < env_vars_raw.size())
+    {
+        size_t end = env_vars_raw.find('\0', start);
+        if (end == std::string::npos)
+        {
             // there is only one env var
             end = env_vars_raw.size();
         }
@@ -49,44 +48,58 @@ void UnSetEnvCommand::execute() {
         start = end + 1;
     }
 
-    // we want an index lookup for the __environ
-    std::map<string, int> env_var_map;
+    // we want a O(1) lookup for the __environ
+    std::unordered_map<string, bool> env_key_map;
 
-    // problem with this approach is maybe the __environ is out dated? and now the value is not the same as in /proc/ so we'll never match
-    // // to save my self splitting each __environ which i'm not gonna use it's value, i'll create another VAR=VALUE key mapping (sneaky but works)
-    // std::map<string, int> env_key_val_map;
-
-    for (int i = 0; i < env_vars.size(); ++i) {
+    // now we have KEY=VALUE format in env_var, so we want to make it key "lookupable"
+    for (const auto& env_var : env_vars)
+    {
         // we map each one to its index
-        string key = Shell::Utils::_split(env_vars[i], "=")[0];
-        env_var_map[key] = i;
+
+        // and the value can contain = according to man7, so we match the first =
+        string key = env_var.substr(0, env_var.find_first_of("="));
+
+        // first populate the table
+        env_key_map[key] = false;
     }
 
     // to save environ fixes.
-    string throwException = "";
+    string throwException;
 
-    for (const auto &env_var: pList) {
-        auto it = env_var_map.find(env_var);
+    for (const auto& env_var : pList)
+    {
+        auto it = env_key_map.find(env_var);
 
-        if (it == env_var_map.end()) {
+        if (it == env_key_map.end())
+        {
             //defer exception
             throwException = env_var;
             break;
         }
+        // set for removal
+        it->second = true;
     }
 
     int write = 0;
     int read = 0;
 
-    while (__environ[read] != nullptr) {
+    while (__environ[read] != nullptr)
+    {
         // if this env is not for deletion, then let's replace it with last index of deletion (write)
-        string key = Shell::Utils::_split(__environ[read], "=")[0];
+        // string key = Shell::Utils::_split(__environ[read], "=")[0];
+        string var = __environ[read];
+
+        string key = var.substr(0, var.find_first_of('='));
+
         if (
-            env_var_map.find(key) == env_var_map.end()
-        ) {
+            // first match in our key maps (if not found then /proc/environ is stale?)
+            env_key_map.find(key) == env_key_map.end()
+            // or we know it exists, but we want to keep it (not remove it)
+            || env_key_map[key] == false
+        )
+        {
             // since if we start with a,b,c not for deletion the indices write, read are equal
             __environ[write++] = __environ[read];
-
             // but if we encounter a,b,c, (d), e
             // such that d for deletion, then read increases but write is stuck at d, so next time, we perform __environ[d] = __environ[e]
             // and now, e is for available for replacement (since now write = e (old) )
@@ -94,13 +107,17 @@ void UnSetEnvCommand::execute() {
         read++;
     }
 
+    // then remove at last write place
+
     // to make sure
-    for (int i = write; i < env_vars.size(); ++i) {
-        __environ[write] = nullptr;
+    for (int i = write; i < read; ++i)
+    {
+        __environ[i] = nullptr;
     }
 
     // must be here to remove correctly found envs.
-    if (!throwException.empty()) {
+    if (!throwException.empty())
+    {
         throw CommandDomainError(throwException + " does not exist");
     }
 }

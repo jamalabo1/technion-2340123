@@ -57,7 +57,7 @@ void ExternalCommand::execute() {
 
 
             vector<string> bashArgs{
-                "bash",
+                "/bin/bash",
                 "-c",
                 bashCmd
             };
@@ -74,7 +74,7 @@ void ExternalCommand::execute() {
 
             argv.emplace_back(nullptr);
 
-            execvp("bash", argv.data());
+            execvp(argv[0], argv.data());
         } else {
             // run the cmd
             vector<string> args = p->list();
