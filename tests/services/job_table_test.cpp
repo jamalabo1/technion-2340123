@@ -9,17 +9,18 @@
 #include "../test_support.h"
 #include "services/job_table.h"
 
-namespace {
-
-std::shared_ptr<CommandProc> makeProc(int pid) {
-    auto proc = std::make_shared<CommandProc>();
-    proc->pId = pid;
-    return proc;
-}
-
+namespace
+{
+    std::shared_ptr<CommandProc> makeProc(int pid)
+    {
+        auto proc = std::make_shared<CommandProc>();
+        proc->pId = pid;
+        return proc;
+    }
 } // namespace
 
-TEST(JobTableTest, AddsJobsWithOneBasedIdsAndAllowsLookup) {
+TEST(JobTableTest, AddsJobsWithOneBasedIdsAndAllowsLookup)
+{
     JobTable table;
     auto first = makeProc(111);
     auto second = makeProc(222);
@@ -40,12 +41,17 @@ TEST(JobTableTest, AddsJobsWithOneBasedIdsAndAllowsLookup) {
     EXPECT_EQ(second_job, table.get_maxIdJob());
 }
 
-TEST(JobTableTest, PrintsJobsInAscendingJobIdOrder) {
+TEST(JobTableTest, PrintsJobsInAscendingJobIdOrder)
+{
     JobTable table;
 
-    table.addJob("sleep 1&", makeProc(111));
-    table.addJob("sleep 2&", makeProc(222));
-    table.addJob("sleep 3&", makeProc(333));
+    auto job1 = test_support::forkSleepingChild();
+    auto job2 = test_support::forkSleepingChild();
+    auto job3 = test_support::forkSleepingChild();
+
+    table.addJob("sleep 1&", makeProc(job1.pid()));
+    table.addJob("sleep 2&", makeProc(job2.pid()));
+    table.addJob("sleep 3&", makeProc(job3.pid()));
 
     testing::internal::CaptureStdout();
     table.printJobsList();
@@ -54,48 +60,68 @@ TEST(JobTableTest, PrintsJobsInAscendingJobIdOrder) {
     EXPECT_EQ("[1] sleep 1&\n[2] sleep 2&\n[3] sleep 3&\n", output);
 }
 
-TEST(JobTableTest, ReusesMaxPlusOneAfterRemovingMiddleJob) {
+//
+TEST(JobTableTest, ReusesMaxPlusOneAfterRemovingMiddleJob)
+{
     JobTable table;
 
-    table.addJob("sleep 1&", makeProc(111));
-    table.addJob("sleep 2&", makeProc(222));
-    table.addJob("sleep 3&", makeProc(333));
+    auto job1 = test_support::forkSleepingChild();
+    auto job2 = test_support::forkSleepingChild();
+    auto job3 = test_support::forkSleepingChild();
+
+
+    table.addJob("sleep 1&", makeProc(job1.pid()));
+    table.addJob("sleep 2&", makeProc(job2.pid()));
+    table.addJob("sleep 3&", makeProc(job3.pid()));
 
     table.removeJobById(2);
-    auto next = makeProc(444);
+
+    auto job4 = test_support::forkSleepingChild();
+    auto next = makeProc(job4.pid());
+
     table.addJob("sleep 4&", next);
 
     EXPECT_EQ(4, next->assignedJobId);
     EXPECT_EQ(nullptr, table.get_jobById(2));
     ASSERT_NE(nullptr, table.get_jobById(4));
-    EXPECT_EQ(444, table.get_jobById(4)->get_pId());
+    EXPECT_EQ(job4.pid(), table.get_jobById(4)->get_pId());
 }
 
-TEST(JobTableTest, ResetsIdsToOneAfterAllJobsAreRemoved) {
+TEST(JobTableTest, ResetsIdsToOneAfterAllJobsAreRemoved)
+{
     JobTable table;
 
-    table.addJob("sleep 1&", makeProc(111));
-    table.addJob("sleep 2&", makeProc(222));
+    auto job1 = test_support::forkSleepingChild();
+    auto job2 = test_support::forkSleepingChild();
+
+
+    table.addJob("sleep 1&", makeProc(job1.pid()));
+    table.addJob("sleep 2&", makeProc(job2.pid()));
 
     table.removeJobById(1);
     table.removeJobById(2);
 
-    auto next = makeProc(333);
+    auto job3 = test_support::forkSleepingChild();
+
+    auto next = makeProc(job3.pid());
     table.addJob("sleep 3&", next);
 
     EXPECT_EQ(1, next->assignedJobId);
     ASSERT_NE(nullptr, table.get_jobById(1));
-    EXPECT_EQ(333, table.get_jobById(1)->get_pId());
+    EXPECT_EQ(job3.pid(), table.get_jobById(1)->get_pId());
 }
 
-TEST(JobTableTest, EmptyTableHasNoMaxOrMatchingJob) {
+
+TEST(JobTableTest, EmptyTableHasNoMaxOrMatchingJob)
+{
     JobTable table;
 
     EXPECT_EQ(nullptr, table.get_maxIdJob());
     EXPECT_EQ(nullptr, table.get_jobById(99));
 }
 
-TEST(JobTableTest, RemoveFinishedJobsKeepsRunningJobsOnly) {
+TEST(JobTableTest, RemoveFinishedJobsKeepsRunningJobsOnly)
+{
     JobTable table;
     auto finished = test_support::forkExitingChild();
     auto running = test_support::forkSleepingChild();
@@ -112,7 +138,8 @@ TEST(JobTableTest, RemoveFinishedJobsKeepsRunningJobsOnly) {
     EXPECT_EQ(running.pid(), table.get_jobById(2)->get_pId());
 }
 
-TEST(JobTableTest, KillAndRemoveAllJobsPrintsPidCommandPairsAndClearsTable) {
+TEST(JobTableTest, KillAndRemoveAllJobsPrintsPidCommandPairsAndClearsTable)
+{
     JobTable table;
     auto first = test_support::forkSleepingChild();
     auto second = test_support::forkSleepingChild();
@@ -126,8 +153,8 @@ TEST(JobTableTest, KillAndRemoveAllJobsPrintsPidCommandPairsAndClearsTable) {
 
     EXPECT_EQ(
         "sending SIGKILL signal to 2 jobs:\n" +
-            std::to_string(first.pid()) + ": sleep 30&\n" +
-            std::to_string(second.pid()) + ": sleep 40&\n",
+        std::to_string(first.pid()) + ": sleep 30&\n" +
+        std::to_string(second.pid()) + ": sleep 40&\n",
         output
     );
     EXPECT_EQ(nullptr, table.get_maxIdJob());

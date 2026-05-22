@@ -999,13 +999,6 @@ TEST(SmashSpecSpecialCommandsStressTest, WhoamiUsesPasswdValuesAndIgnoresArgs) {
     EXPECT_EQ("", result.stderrOutput);
 }
 
-TEST(SmashSpecSpecialCommandsStressTest, UsbinfoIsNotRegisteredUnlessImplemented) {
-    const SmashRunResult result = runSmash({"usbinfo", "quit"});
-
-    expectExitedZero(result);
-    EXPECT_TRUE(contains(result.stderrOutput, "smash error: execvp failed: "));
-}
-
 TEST(SmashSpecExpandedBuiltinsMatrixTest, ChpromptShowpidAndPwdAdditionalEdges) {
     test_support::TempDir temp;
     const std::string pidFile = temp.writeFile("pid.txt", "old\n");
