@@ -25,7 +25,7 @@ void ForegroundCommand::prepare()
     }
 
     // the only valid range is [1, inf] and -1 as special value
-    if (jobId < 0 && jobId != -1) throw CommandInvalidArguments();
+    if (jobId <= 0 && jobId != -1) throw CommandInvalidArguments();
 }
 
 void ForegroundCommand::execute()

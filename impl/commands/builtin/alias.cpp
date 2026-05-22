@@ -8,7 +8,6 @@
 
 REGISTER_COMMAND(AliasCommand)
 
-//TODO: move to exceptions
 class AliasInvalidFormatException : public CommandErrorMessage
 {
 public:

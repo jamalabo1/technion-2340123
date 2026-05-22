@@ -9,6 +9,8 @@
 
 REGISTER_COMMAND(KillCommand);
 
+using Shell::Utils::parseInt;
+using Shell::Utils::SignalProc;
 
 void KillCommand::prepare()
 {
@@ -24,18 +26,16 @@ void KillCommand::prepare()
 
     try
     {
-        //TODO: check if hex bases are also accepted?
-        sigNum = std::stoi(sigExpr.substr(1));
-        jobId = std::stoi(pList[1]);
+        sigNum = parseInt(sigExpr.substr(1));
+        jobId = parseInt(pList[1]);
     }
     catch (std::exception&)
     {
         throw CommandInvalidArguments();
     }
 
-    //TODO: job id = 0, is invalid or job not exist?
     // the only valid range is [1, inf]
-    // if (jobId < 0) throw CommandInvalidArguments();
+    if (jobId < 1) throw CommandInvalidArguments();
 }
 
 
@@ -44,9 +44,10 @@ void KillCommand::execute()
     auto job = services->table->get_jobById(jobId);
     if (job == nullptr) throw CommandJobNotFoundException(jobId);
 
-    int pid = job->get_pId();
+    const int pid = job->get_pId();
+
     // no need to remove from job entry, no waitpid was done.
-    Shell::Utils::SignalProc(pid, sigNum);
+    SignalProc(pid, sigNum);
 
     // if successes we are here, otherwise, threw an exception
     std::cout << "signal number " << sigNum << " was sent to pid " << pid << std::endl;
