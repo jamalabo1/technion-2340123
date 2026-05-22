@@ -42,6 +42,7 @@ namespace Shell
         short check_child(pid_t pid);
 
         std::string read_all(const std::string& path);
+        std::string read_line(const std::string& path);
 
         // called from the above method after opening a file
         std::string read_all_f(FILE* file);
@@ -50,6 +51,11 @@ namespace Shell
 
         // TODO: check if hex are acceptable (std::stoi)
         int parseInt(const std::string& s);
+
+
+        // make sure to close fd.
+        void traverse_dir(int fd, std::function<void(std::string)> cb);
+
     }
 }
 

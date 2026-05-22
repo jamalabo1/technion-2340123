@@ -12,26 +12,33 @@ void ForegroundCommand::prepare()
 {
     // single or default -1
     auto jobId_s = params()
-        ->singleOrDefault<CommandInvalidArguments>("-1");
+        ->singleOrDefault<CommandInvalidArguments>();
 
     try
     {
-        jobId = std::stoi(jobId_s);
+        if (jobId_s.empty())
+        {
+            //0 as special value
+            jobId = 0;
+        }
+        else
+        {
+            jobId = Shell::Utils::parseInt(jobId_s);
+            // the only valid range is [1, inf]
+            if (jobId <= 0) throw CommandInvalidArguments();
+        }
     }
     catch (std::exception&)
     {
         //NOTE: I think it's of this reason it's better if I keep it split here instead of merging
         throw CommandInvalidArguments();
     }
-
-    // the only valid range is [1, inf] and -1 as special value
-    if (jobId <= 0 && jobId != -1) throw CommandInvalidArguments();
 }
 
 void ForegroundCommand::execute()
 {
     auto job =
-        jobId == -1
+        jobId == 0
             ? services->table->get_maxIdJob()
             : services->table->get_jobById(jobId);
 

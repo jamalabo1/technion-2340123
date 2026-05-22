@@ -11,4 +11,6 @@ DEFINE_COMMAND("du", DiskUsageCommand, Command);
 
 DEFINE_COMMAND("whoami", WhoAmICommand, Command);
 
+DEFINE_COMMAND("usbinfo", USBInfoCommand, Command);
+
 #endif //SPECIAL_H

@@ -15,13 +15,14 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     git \
     sudo \
+    valgrind \
     && rm -rf /var/lib/apt/lists/*
 
 # Optional: create normal dev user.
 # CLion may override the user when mounting files, but this is still useful manually.
 ARG USERNAME=builder
-ARG UID=1000
-ARG GID=1000
+ARG UID=1002
+ARG GID=1003
 
 RUN groupadd -g ${GID} ${USERNAME} || true && \
     useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME} || true && \

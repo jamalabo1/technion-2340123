@@ -14,6 +14,8 @@
 #include <sstream>
 #include <sys/wait.h>
 
+#include <dirent.h>
+
 #include "exceptions.h"
 
 using namespace std;
@@ -189,6 +191,7 @@ namespace Shell
             return read_all_f(fd);
         }
 
+
         string read_all_f(FILE* fd)
         {
             char buf[512];
@@ -225,6 +228,14 @@ namespace Shell
             return data;
         }
 
+
+        std::string read_line(const std::string& path)
+        {
+            string data = read_all(path);
+            // read until first newline
+            return data.substr(0, data.find_first_of('\n'));
+        }
+
         string get_current_cwd()
         {
             // according to man7, nullptr, 0 in posix glibc ext, dynamically allocates the buffer's size.
@@ -247,6 +258,46 @@ namespace Shell
         int parseInt(const std::string& s)
         {
             return std::stoi(s);
+        }
+
+        struct linux_dirent64
+        {
+            ino64_t d_ino; /* 64-bit inode number */
+            off64_t d_off; /* Not an offset; see getdents() */
+            unsigned short d_reclen; /* Size of this dirent */
+            unsigned char d_type; /* File type */
+            char d_name[]; /* Filename (null-terminated) */
+        };
+
+        // returns true if there is more to read
+        void traverse_dir(int fd, std::function<void(string)> cb)
+        {
+            constexpr size_t BUF_SIZE = 8192;
+            char buf[BUF_SIZE];
+
+            while (true)
+            {
+                size_t dents = getdents64(fd, buf, BUF_SIZE);
+                if (dents == -1)
+                {
+                    // close and report
+                    close(fd);
+                    throw SyscallException("getdents64");
+                }
+
+                if (dents == 0)
+                    // we finished this directory
+                    break;
+
+                for (int bpos = 0; bpos < dents;)
+                {
+                    auto* d = reinterpret_cast<linux_dirent64*>(buf + bpos);
+
+                    cb(d->d_name);
+
+                    bpos += d->d_reclen;
+                }
+            }
         }
     }
 }

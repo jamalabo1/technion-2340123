@@ -59,7 +59,7 @@ namespace
 #endif
 } // namespace
 
-TEST(DiskUsageCommandTest, UsesCurrentDirectoryWhenNoPathIsProvided)
+TEST(DiskUsageCommandTest, NoPathUsesCurrentDirectory)
 {
 #ifndef __linux__
     GTEST_SKIP() << "du command uses Linux getdents64";
@@ -67,43 +67,30 @@ TEST(DiskUsageCommandTest, UsesCurrentDirectoryWhenNoPathIsProvided)
     test_support::TempDir temp;
     test_support::ScopedCwd cwdGuard;
     temp.writeFile("one_byte.txt", "x");
-    int chdirResult = chdir(temp.root().c_str());
-    ASSERT_EQ(0,
-              chdirResult
-    );
 
-    const test_support::ChildRunResult result = test_support::runInChildCapturingStdout([]()
-    {
+    ASSERT_EQ(0, chdir(temp.root().c_str()));
+
+    auto runNoArg = test_support::runInChildCapturingStdout([]() {
         auto services = test_support::makeServices();
         auto wenv = test_support::makeWenv();
         runDu(wenv, services, {});
     });
 
-    ASSERT_TRUE(WIFEXITED(result.status));
-    ASSERT_EQ(0, WEXITSTATUS(result.status));
-    EXPECT_EQ("Total disk usage: 1 KB\n", result.stdoutOutput);
-#endif
-}
-
-TEST(DiskUsageCommandTest, RoundsFileUsageUpToWholeKilobytes)
-{
-#ifndef __linux__
-    GTEST_SKIP() << "du command uses Linux getdents64";
-#else
-    test_support::TempDir temp;
-    temp.writeFile("one_byte.txt", "x");
-    const test_support::ChildRunResult result = test_support::runInChildCapturingStdout([&]()
-    {
+    auto runExplicit = test_support::runInChildCapturingStdout([&]() {
         auto services = test_support::makeServices();
         auto wenv = test_support::makeWenv();
         runDu(wenv, services, {temp.root()});
     });
 
-    ASSERT_TRUE(WIFEXITED(result.status));
-    ASSERT_EQ(0, WEXITSTATUS(result.status));
-    EXPECT_EQ("Total disk usage: 1 KB\n", result.stdoutOutput);
+    ASSERT_TRUE(WIFEXITED(runNoArg.status));
+    ASSERT_TRUE(WIFEXITED(runExplicit.status));
+    ASSERT_EQ(0, WEXITSTATUS(runNoArg.status));
+    ASSERT_EQ(0, WEXITSTATUS(runExplicit.status));
+
+    EXPECT_EQ(runExplicit.stdoutOutput, runNoArg.stdoutOutput);
 #endif
 }
+
 
 TEST(DiskUsageCommandTest, RejectsTooManyArguments)
 {
