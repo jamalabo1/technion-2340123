@@ -98,7 +98,7 @@ TEST(ExternalCommandTest, ComplexCommandUsesBashForWildcardExpansion) {
 
 TEST(PipeCommandTest, PipesStdoutFromFirstCommandIntoSecondCommand) {
     const test_support::ChildRunResult result = test_support::runInChildCapturingStdout([]() {
-        runOwned(SmallShell::getInstance().CreateCommand("/bin/echo hello | /usr/bin/grep hell"));
+        runOwned(SmallShell::getInstance().CreateCommand("/bin/echo hello | /bin/grep hell"));
     });
 
     ASSERT_TRUE(WIFEXITED(result.status));
@@ -117,7 +117,7 @@ TEST(PipeCommandTest, PipeAmpersandPipesStderrFromFirstCommandIntoSecondCommand)
     const test_support::ChildRunResult result =
         test_support::runInChildCapturingStdout([&]() {
             runOwned(SmallShell::getInstance().CreateCommand(
-                (script + " |& /usr/bin/grep stderr-line").c_str()
+                (script + " |& /bin/grep stderr-line").c_str()
             ));
         });
 

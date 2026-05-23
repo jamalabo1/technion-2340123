@@ -21,34 +21,17 @@ private:
     }
 
 public:
-    CommandFactory() {
-    };
-
-    Command* create(
+    Command *create(
         std::string key,
-        const CommandCtx& ctx
-    ) {
-        if (table.find(key) == table.end()) {
-            return nullptr;
-        }
+        const CommandCtx &ctx
+    );
 
-        return table[key](ctx);
-    }
-
-    void registerCommand(const std::string &id, FactoryInstanceCreatorType func) {
-        table[id] = std::move(func);
-    }
+    void registerCommand(const std::string &id, FactoryInstanceCreatorType func);
 
 
-    static bool containsCommand(const std::string &key) {
-        return getInstance()->_containsCommand(key);
-    }
+    static bool containsCommand(const std::string &key);
 
-    static std::shared_ptr<CommandFactory> getInstance() {
-        static std::shared_ptr<CommandFactory> instance = std::make_shared<CommandFactory>();
-
-        return instance;
-    }
+    static std::shared_ptr<CommandFactory> getInstance();
 };
 
 #endif //COMMAND_FACTORY_H
