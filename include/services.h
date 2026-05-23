@@ -5,10 +5,10 @@
 #ifndef SERVICES_H
 #define SERVICES_H
 
-#include "services/aliases.h"
-#include "services/job_table.h"
-#include "services/proc_mng.h"
-#include "services/child_tracker.h"
+#include "aliases.h"
+#include "job_table.h"
+#include "proc_mng.h"
+#include "child_tracker.h"
 
 //kinda IoC replacement
 

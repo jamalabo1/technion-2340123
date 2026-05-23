@@ -3,7 +3,7 @@
 //
 
 #include <stdexcept>
-#include "ds/avl.h"
+#include "avl.h"
 
 using std::make_shared;
 using std::shared_ptr;

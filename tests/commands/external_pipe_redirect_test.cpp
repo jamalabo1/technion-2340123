@@ -8,8 +8,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "../test_support.h"
-#include "commands/external.h"
+#include "test_support.h"
+#include "external.h"
 #include "shell.h"
 
 namespace {

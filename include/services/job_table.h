@@ -9,8 +9,8 @@
 #include <vector>
 #include <memory>
 
-#include "../job.h"
-#include "ds/avl.h"
+#include "job.h"
+#include "avl.h"
 
 class JobTable
 {

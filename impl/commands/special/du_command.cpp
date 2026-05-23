@@ -3,7 +3,7 @@
 //
 #include "exceptions.h"
 #include "macros.h"
-#include "commands/special.h"
+#include "special.h"
 #include <pwd.h>
 #include <dirent.h>
 #include <fcntl.h>

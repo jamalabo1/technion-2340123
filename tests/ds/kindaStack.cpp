@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "ds/KindaStack.h"
+#include "KindaStack.h"
 
 TEST(KindaStackTest, NewStackHasNoCurrentOrPreviousValue) {
     KindaStack<std::string> stack;

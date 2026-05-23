@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-#include "../test_support.h"
+#include "test_support.h"
 
 extern char** environ;
 

@@ -7,8 +7,8 @@
 #include <csignal>
 #include <iostream>
 #include <unistd.h>
-#include <commands/pipe.h>
-#include <commands/redirect.h>
+#include <pipe.h>
+#include <redirect.h>
 
 #include "exceptions.h"
 #include "utils.h"

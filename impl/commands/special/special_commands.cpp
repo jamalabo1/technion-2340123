@@ -9,7 +9,7 @@
 
 #include "exceptions.h"
 #include "macros.h"
-#include "commands/special.h"
+#include "special.h"
 
 
 using namespace std;

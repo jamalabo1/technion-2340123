@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-#include "../test_support.h"
-#include "commands/built_in.h"
-#include "commands/special.h"
+#include "test_support.h"
+#include "built_in.h"
+#include "special.h"
 #include "exceptions.h"
 
 #include <fcntl.h>

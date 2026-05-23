@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "command_factory.h"
-#include "commands/built_in.h"
-#include "services/aliases.h"
+#include "built_in.h"
+#include "aliases.h"
 
 TEST(AliasesServiceTest, AddsTokenizesAndRemovesAliases) {
     Aliases aliases;

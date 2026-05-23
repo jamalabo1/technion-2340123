@@ -6,8 +6,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "../test_support.h"
-#include "services/job_table.h"
+#include "test_support.h"
+#include "job_table.h"
 
 namespace
 {

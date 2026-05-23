@@ -6,7 +6,7 @@
 
 #include "exceptions.h"
 #include "utils.h"
-#include "commands/built_in.h"
+#include "built_in.h"
 
 using std::string;
 using std::vector;

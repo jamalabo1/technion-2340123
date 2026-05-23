@@ -1,7 +1,7 @@
 //
 // Created by jamal on 16/05/2026.
 //
-#include "services/proc_mng.h"
+#include "proc_mng.h"
 
 #include <stdexcept>
 #include <sys/wait.h>

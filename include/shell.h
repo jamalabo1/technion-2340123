@@ -6,8 +6,8 @@
 #define SHELL_H
 
 #include "command_factory.h"
-#include "services/job_table.h"
-#include "commands/all.h"
+#include "job_table.h"
+#include "all.h"
 
 class SmallShell
 {

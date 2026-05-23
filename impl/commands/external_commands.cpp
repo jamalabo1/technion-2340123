@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 
 #include "exceptions.h"
-#include "commands/external.h"
+#include "external.h"
 #include "regex"
 
 #include "utils.h"

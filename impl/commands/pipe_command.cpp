@@ -6,7 +6,7 @@
 #include <sys/wait.h>
 
 #include "exceptions.h"
-#include "commands/pipe.h"
+#include "pipe.h"
 
 
 PipeCommand::PipeCommand(CommandCtx& ctx, Command* cmd1, Command* cmd2) : Command(ctx), cmd1(cmd1), cmd2(cmd2)

@@ -52,7 +52,13 @@ add_library(skeleton_smash_lib
 
 )
 
-target_include_directories(skeleton_smash_lib PUBLIC include)
+target_include_directories(skeleton_smash_lib
+        PUBLIC
+        include
+        include/commands
+        include/ds
+        include/services
+)
 
 add_executable(skeleton_smash
         smash.cpp

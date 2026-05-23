@@ -3,8 +3,8 @@
 #include <memory>
 #include <sys/wait.h>
 
-#include "../test_support.h"
-#include "services/proc_mng.h"
+#include "test_support.h"
+#include "proc_mng.h"
 
 TEST(CommandProcManagementTest, SetClearAndGetForegroundProcess) {
     CommandProcManagement management;

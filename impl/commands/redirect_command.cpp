@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 #include "exceptions.h"
-#include "commands/redirect.h"
+#include "redirect.h"
 
 void FileWrapperProxy::prepare()
 {

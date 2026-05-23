@@ -10,7 +10,7 @@
 
 #include "exceptions.h"
 #include "utils.h"
-#include "ds/KindaStack.h"
+#include "KindaStack.h"
 
 // working env, separated from the smash instance to enable it's sharing along other objects in the program if needed
 class WorkingEnvironment

@@ -7,7 +7,7 @@
 
 #include "exceptions.h"
 #include "utils.h"
-#include "commands/built_in.h"
+#include "built_in.h"
 #include <sys/utsname.h>
 
 using std::string;

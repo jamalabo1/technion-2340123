@@ -1,7 +1,7 @@
 //
 // Created by jamal on 16/05/2026.
 //
-#include "services/aliases.h"
+#include "aliases.h"
 
 #include "command_factory.h"
 

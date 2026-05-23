@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "commands/built_in.h"
+#include "built_in.h"
 #include "exceptions.h"
 #include "services.h"
 

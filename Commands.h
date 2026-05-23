@@ -4,6 +4,6 @@
 
 #include <vector>
 
-#include "commands/all.h"
+#include "all.h"
 
 #endif //SMASH_COMMAND_H_

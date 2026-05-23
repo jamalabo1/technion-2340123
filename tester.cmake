@@ -73,7 +73,14 @@ function(ds_tester_attach student_target)
         )
 
         #include the headers
-        target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include)
+        target_include_directories(${test_target}
+                PRIVATE
+                ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include
+                ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/commands
+                ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/ds
+                ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/services
+                ${TESTS_DIR}
+        )
 
         if (TARGET skeleton_smash)
             add_dependencies(${test_target} skeleton_smash)
