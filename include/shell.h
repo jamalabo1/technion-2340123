@@ -41,12 +41,8 @@ public:
 
     SmallShell(SmallShell const&) = delete; // disable copy ctor
     void operator=(SmallShell const&) = delete; // disable = operator
-    static SmallShell& getInstance() // make SmallShell singleton
-    {
-        static SmallShell instance; // Guaranteed to be destroyed.
-        // Instantiated on first use.
-        return instance;
-    }
+
+    static SmallShell& getInstance();
 
     ~SmallShell();
 

@@ -1,17 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 project(skeleton_smash LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
-#set(headers
-#
-#        include/wenv.h
-#)
 FILE(GLOB headers "include/*.h")
 
 add_library(skeleton_smash_lib
-OBJECT
+        OBJECT
+
         include/ds/avl.h
         impl/ds/avl.cpp
         impl/ds/avl_init.cpp
@@ -20,7 +17,6 @@ OBJECT
         signals.cpp
 
         ${headers}
-
 
 
         impl/commands/built_in_commands_impl.cpp
@@ -51,6 +47,7 @@ OBJECT
         impl/commands/special/special_commands.cpp
         include/commands/special.h
         impl/commands/special/du_command.cpp
+        impl/command_factory.cpp
 
 
 )

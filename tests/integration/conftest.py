@@ -34,7 +34,7 @@ def smash_executable(project_root: Path) -> Path:
             pytest.fail(f"SMASH_TEST_BINARY does not exist: {binary}")
         return binary
 
-    build_dir = Path(os.environ.get("SMASH_CMAKE_BUILD_DIR", project_root / "cmake-build-debug-wsl"))
+    build_dir = Path(os.environ.get("SMASH_CMAKE_BUILD_DIR", project_root / "cmake-build-debug-vm"))
     if not (build_dir / "CMakeCache.txt").exists():
         configure = subprocess.run(
             ["cmake", "-S", str(project_root), "-B", str(build_dir)],

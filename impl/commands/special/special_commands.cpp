@@ -19,7 +19,7 @@ REGISTER_COMMAND(WhoAmICommand);
 void WhoAmICommand::execute()
 {
     // user id
-    const uid_t uid = getuid();
+    const int uid = getuid();
     if (uid == -1)
     {
         throw SyscallException("getuid");

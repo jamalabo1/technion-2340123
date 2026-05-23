@@ -25,10 +25,10 @@ function(ds_tester_attach student_target)
         target_compile_options(${student_target} PRIVATE -Wall -DNDEBUG)
     endif ()
 
-    message(STATUS "dir=${CMAKE_CURRENT_FUNCTION_LIST_DIR}")
+    message(STATUS "dir=${CMAKE_CURRENT_LIST_DIR}")
 
     # get tests from the requested dir (released version will stip the other tests)
-    set(TESTS_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/${DS_HW})
+    set(TESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/${DS_HW})
 
     message(STATUS "looking for tests in ${TESTS_DIR}")
 
@@ -49,15 +49,8 @@ function(ds_tester_attach student_target)
                 GIT_REPOSITORY https://github.com/google/googletest.git
                 GIT_TAG        v1.14.0
                 #                URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-                DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         )
-        # For Windows: Prevent overriding the parent project's compiler/linker settings
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        set(_ds_tester_previous_cxx_standard ${CMAKE_CXX_STANDARD})
-        set(CMAKE_CXX_STANDARD 14)
-        set(CMAKE_CXX_STANDARD_REQUIRED ON)
         FetchContent_MakeAvailable(googletest)
-        set(CMAKE_CXX_STANDARD ${_ds_tester_previous_cxx_standard})
 
         # create the test executable
         add_executable(
