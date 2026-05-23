@@ -18,6 +18,7 @@
 #include <sys/syscall.h>
 
 #include <dirent.h>
+#include <unistd.h>
 
 #include "exceptions.h"
 

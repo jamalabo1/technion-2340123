@@ -8,9 +8,12 @@
 #include "exceptions.h"
 #include "pipe.h"
 
+using std::unique_ptr;
 
-PipeCommand::PipeCommand(CommandCtx& ctx, Command* cmd1, Command* cmd2) : Command(ctx), cmd1(cmd1), cmd2(cmd2)
-{
+
+PipeCommand::PipeCommand(CommandCtx &ctx, unique_ptr<Command> cmd1, unique_ptr<Command> cmd2) : Command(ctx),
+    cmd1(std::move(cmd1)),
+    cmd2(std::move(cmd2)) {
 }
 
 // TODO: expand on this later
@@ -19,8 +22,7 @@ PipeCommand::PipeCommand(CommandCtx& ctx, Command* cmd1, Command* cmd2) : Comman
 #define CLOSE(...) GUARDED_SYSCALL(close, __VA_ARGS__)
 #define DUP2(...) GUARDED_SYSCALL(dup2, __VA_ARGS__)
 
-void PipeCommand::execute()
-{
+void PipeCommand::execute() {
     // create a pipe in the parent
     int fd[2];
 
@@ -33,8 +35,7 @@ void PipeCommand::execute()
 
     int child1 = services->children->fork();
 
-    if (child1 == 0)
-    {
+    if (child1 == 0) {
         // now change the fds for child1
 
         // for the child1 perspective, it's only going to write, so close the read arrow
@@ -60,8 +61,7 @@ void PipeCommand::execute()
 
     int child2 = services->children->fork();
 
-    if (child2 == 0)
-    {
+    if (child2 == 0) {
         // child2 does not writes to the pipe so
         CLOSE(fd[1]);
 
@@ -96,12 +96,10 @@ void PipeCommand::execute()
      */
 
     //perform a blocking wait in the parent for both
-    if (waitpid(child1, nullptr, 0) == -1)
-    {
+    if (waitpid(child1, nullptr, 0) == -1) {
         throw SyscallException("waitpid");
     };
-    if (waitpid(child2, nullptr, 0) == -1)
-    {
+    if (waitpid(child2, nullptr, 0) == -1) {
         throw SyscallException("waitpid");
     };
 }

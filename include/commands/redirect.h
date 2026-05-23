@@ -24,12 +24,10 @@ class FileWrapperProxy : public Command {
 private:
     std::string fileName;
     bool isAppend;
-    Command *cmd;
+    std::unique_ptr<Command> cmd;
 
 public:
-    explicit FileWrapperProxy(CommandCtx &ctx, Command *cmd): Command(ctx),
-                                                              cmd(cmd) {
-    };
+    FileWrapperProxy(CommandCtx &ctx, std::unique_ptr<Command> cmd);
 
     void prepare() override;
 

@@ -9,14 +9,12 @@
 
 class PipeCommand : public Command {
 private:
-    Command* cmd1;
-    Command* cmd2;
+    // Command* cmd1;
+    std::unique_ptr<Command> cmd1;
+    std::unique_ptr<Command> cmd2;
 
 public:
-    PipeCommand(CommandCtx& ctx, Command* cmd1, Command* cmd2);
-
-    virtual ~PipeCommand() {
-    }
+    PipeCommand(CommandCtx& ctx, std::unique_ptr<Command> cmd1, std::unique_ptr<Command> cmd2);
 
     void execute() override;
 };

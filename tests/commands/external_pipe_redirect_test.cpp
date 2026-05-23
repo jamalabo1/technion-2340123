@@ -14,11 +14,11 @@
 
 namespace {
 
-void runOwned(Command* command) {
+void runOwned(std::unique_ptr<Command> command) {
     if (command == nullptr) {
         throw std::runtime_error("CreateCommand returned null");
     }
-    std::unique_ptr<Command> owned(command);
+    // std::unique_ptr<Command> owned(command);
     command->run();
 }
 

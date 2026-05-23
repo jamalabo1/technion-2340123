@@ -30,14 +30,12 @@ private:
     std::shared_ptr<Services> services;
 
 private:
-    Command* _handleIo(std::string cmd_s, size_t ioPos);
+    std::unique_ptr<Command> _handleIo(std::string cmd_s, size_t ioPos);
 
-    Command* _handlePipe(std::string cmd_s, size_t pipePos);
-
-    Command* _createPipe(Command* cmd1, Command* cmd2, const std::vector<std::string>& paramsList) const;
+    std::unique_ptr<Command> _handlePipe(std::string cmd_s, size_t pipePos);
 
 public:
-    Command* CreateCommand(const char* cmd_line, bool tokenizeAlias = true);
+    std::unique_ptr<Command> CreateCommand(const char* cmd_line, bool tokenizeAlias = true);
 
     SmallShell(SmallShell const&) = delete; // disable copy ctor
     void operator=(SmallShell const&) = delete; // disable = operator
