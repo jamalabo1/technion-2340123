@@ -31,8 +31,8 @@ string Parameters::concat() const
 {
     std::string concatenated;
 
-    int n = params.size();
-    for (int i = 0; i < n; i++)
+    size_t n = params.size();
+    for (size_t i = 0; i < n; i++)
     {
         concatenated += params[i];
         if (i != n - 1)

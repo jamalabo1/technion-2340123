@@ -26,14 +26,13 @@ public:
 
     Command* create(
         std::string key,
-        CommandCtx& ctx
+        const CommandCtx& ctx
     ) {
         if (table.find(key) == table.end()) {
             return nullptr;
         }
 
-        //TODO: maybe improve the copy?
-        return table[key](std::move(ctx));
+        return table[key](ctx);
     }
 
     void registerCommand(const std::string &id, FactoryInstanceCreatorType func) {

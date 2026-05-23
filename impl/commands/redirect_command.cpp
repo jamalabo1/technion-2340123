@@ -71,7 +71,7 @@ void FileWrapperProxy::execute()
         // not checking for errors because we want to report the original error
         // and if these fail then it's out of our control (maybe os refusing everything?)
         dup2(temp_stdout, STDOUT_FILENO);
-        close(fd);
+        close(temp_stdout);
 
         throw;
     }

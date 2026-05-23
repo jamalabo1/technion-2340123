@@ -32,7 +32,7 @@ void ExternalCommand::execute() {
         // always create command proc for running children ( so that signals can be forwarded )
         setProc(pid);
 
-        // TODO: ideally it would be better if we redirect this logic into a concrete fg command, but first, we don't have access to the job from command
+        //  ideally it would be better if we redirect this logic into a concrete fg command, but first, we don't have access to the job from command
         // and second, it's going the extra mile for saving 2 line (if were not for compactness i would've done it)
 
         if (!ctx.get_flags().isBackground) {

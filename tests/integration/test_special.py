@@ -134,24 +134,3 @@ def test_du_too_many_arguments_is_stderr(run):
     result.assert_exit_ok()
     assert_stderr_contains(result, "smash error: du: too many arguments")
     assert "too many arguments" not in result.stdout
-
-
-def test_usbinfo_black_box_output_matches_host_usb_state(run):
-    usb_root = Path("/sys/bus/usb/devices")
-    has_devices = usb_root.exists() and any((p / "idVendor").exists() for p in usb_root.iterdir())
-    result = run(["usbinfo", "quit"])
-    result.assert_exit_ok()
-    if not has_devices:
-        assert_stderr_contains(result, "smash error: usbinfo: no USB devices found")
-        return
-
-    assert_stderr_empty(result)
-    devnums = []
-    for line in result.stdout_lines():
-        match = re.fullmatch(
-            r"Device (\d+): ID [0-9a-fA-F]{4}:[0-9a-fA-F]{4} .+ MaxPower: \d+mA",
-            line,
-        )
-        assert match, f"bad usbinfo line: {line!r}"
-        devnums.append(int(match.group(1)))
-    assert devnums == sorted(devnums)

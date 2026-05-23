@@ -38,7 +38,7 @@ SmallShell::~SmallShell()
 }
 
 // per assumptions: • I/O redirection and Pipe commands are correctly formatted.
-Command* SmallShell::_handleIo(string cmd_s, int ioPos)
+Command* SmallShell::_handleIo(string cmd_s, size_t ioPos)
 {
     auto cmds = _split(cmd_s, ">");
     if (cmds.size() != 2)
@@ -70,11 +70,12 @@ Command* SmallShell::_handleIo(string cmd_s, int ioPos)
 }
 
 // per assumptions: • I/O redirection and Pipe commands are correctly formatted.
-Command* SmallShell::_handlePipe(std::string cmd_s, int pipePos)
+Command* SmallShell::_handlePipe(std::string cmd_s, size_t pipePos)
 {
     vector<string> paramsList{};
-    // instead of reinventing the wheel, we'll pas it as params
+    // instead of reinventing the wheel, we'll pass it as params
 
+    // pipepos+1 is assumed to exist since pipes are correctly formatted.
 
     bool hasEFlag = cmd_s[pipePos + 1] == '&';
     if (hasEFlag)
@@ -98,6 +99,7 @@ Command* SmallShell::_handlePipe(std::string cmd_s, int pipePos)
         throw std::logic_error("wrong number of pipes, although per assumptions, io/pipe are correctly formatted");
     }
 
+    // this should also break the recursion cycle. since cmd sizes are strict monotonic dec and hence must hit 0.
     if (cmds[0].size() * cmds[1].size() == 0)
     {
         throw std::logic_error("no pipes?");
@@ -105,14 +107,14 @@ Command* SmallShell::_handlePipe(std::string cmd_s, int pipePos)
 
     Command* cmd1 = CreateCommand(cmds[0].c_str());
 
-    //TODO: it seems this is not symmetric (for aliases)
+    // it seems this is not symmetric (for aliases)
     Command* cmd2 = CreateCommand(cmds[1].c_str(), false);
 
     return _createPipe(cmd1, cmd2, paramsList);
 }
 
 
-Command* SmallShell::_createPipe(Command* cmd1, Command* cmd2, vector<string> paramsList) const
+Command* SmallShell::_createPipe(Command* cmd1, Command* cmd2, const vector<string>& paramsList) const
 {
     CommandCtx pipeCtx(
         "pipe",
@@ -131,6 +133,7 @@ Command* SmallShell::_createPipe(Command* cmd1, Command* cmd2, vector<string> pa
 */
 Command* SmallShell::CreateCommand(const char* cmd_line, bool tokenizeAlias)
 {
+    // so that we don't modify the original
     const auto raw_cmd_line = const_cast<char*>(cmd_line);
 
     // normalize
@@ -146,14 +149,14 @@ Command* SmallShell::CreateCommand(const char* cmd_line, bool tokenizeAlias)
     //command creation rejected
     if (cmd_s.empty()) return nullptr;
 
-    int pipePos = cmd_s.find_first_of('|');
+    size_t pipePos = cmd_s.find_first_of('|');
     if (pipePos != std::string::npos)
     {
         // if pipe, then recursive create both
         return _handlePipe(cmd_s, pipePos);
     }
 
-    int ioPos = cmd_s.find_first_of('>');
+    size_t ioPos = cmd_s.find_first_of('>');
     if (ioPos != std::string::npos)
     {
         // if io, then recursive create both
@@ -173,7 +176,7 @@ Command* SmallShell::CreateCommand(const char* cmd_line, bool tokenizeAlias)
     // perform replacement (maybe also get the index from _command)
     cmd_s.replace(0, cmd_s.find_first_of(WHITESPACE), candidate);
 
-    // extract command
+    // extract command again, since alias may contain whitespace
     string command = _command(cmd_s);
 
     // get params
@@ -201,6 +204,11 @@ Command* SmallShell::CreateCommand(const char* cmd_line, bool tokenizeAlias)
     {
         //then this is an external command.
         cmd = new ExternalCommand(ctx);
+    }
+    else
+    {
+        // per requirement that only external can run in background. further disabling may occur in i/o or pipe
+        cmd->disableBg();
     }
 
     return cmd;

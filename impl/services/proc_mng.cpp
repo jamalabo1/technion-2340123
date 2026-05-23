@@ -3,9 +3,6 @@
 //
 #include "services/proc_mng.h"
 
-#include <cstddef>
-#include <iostream>
-#include <ostream>
 #include <stdexcept>
 #include <sys/wait.h>
 

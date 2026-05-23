@@ -15,17 +15,9 @@
 class JobTable
 {
 public:
-    // std::vector<JobEntry> jobs;
-
     Avl<int, JobEntry> _jobs;
-
-    // TODO: Add your data members
 public:
     JobTable();
-
-    // ~JobTable()
-    // {
-    // };
 
     void addJob(
         const std::string& cmd_line,
@@ -34,15 +26,9 @@ public:
 
     void printJobsList();
 
-    // void killAllJobs()
-    // {
-    // };
 
     void removeFinishedJobs();
 
-    // JobEntry* getJobById(int jobId)
-    // {
-    // };
 
     void removeJobById(int jobId);
 
@@ -52,13 +38,6 @@ public:
 
 
     void killAndRemoveAllJobs();
-
-    //
-    // JobEntry* getLastJob(int* lastJobId);
-    //
-    // std::shared_ptr<JobEntry> getLastStoppedJob(int* jobId);
-    //
-    // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 

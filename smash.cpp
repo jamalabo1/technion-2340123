@@ -25,17 +25,7 @@ int main(int argc, char* argv[]) {
 
         std::string cmd_line;
 
-
-        if (!std::getline(std::cin, cmd_line)) {
-             //TODO: wtf?
-            if (std::cin.eof()) {
-                std::cerr << "\nstdin EOF; exiting shell loop in " << getpid() << std::endl;;
-            } else {
-                std::cerr << "\nstdin error; exiting shell loop\n";
-
-            }
-            break;
-        }
+        std::getline(std::cin, cmd_line);
 
         smash.executeCommand(cmd_line.c_str());
     }

@@ -12,7 +12,7 @@
 
 //kinda IoC replacement
 
-//TODO: if the projects requires afterward, maybe make it pseudoIoC, where instead of ctx->services relationship
+// if the projects requires afterward, maybe make it pseudoIoC, where instead of ctx->services relationship
 // commands ask for the service as ioc->[service] in the constructor (through global singleton)
 // such that Services definition does not appear in the header.
 class Services {

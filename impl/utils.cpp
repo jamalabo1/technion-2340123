@@ -257,7 +257,14 @@ namespace Shell
 
         int parseInt(const std::string& s)
         {
-            return std::stoi(s);
+            size_t pos;
+            int result = std::stoi(s, &pos);
+            if(pos != s.length())
+            {
+                // maybe 1x? (also 01 is not accepted under this test, maybe change the test?)
+                throw std::invalid_argument("Not Int");
+            }
+            return result;
         }
 
         struct linux_dirent64
@@ -289,7 +296,7 @@ namespace Shell
                     // we finished this directory
                     break;
 
-                for (int bpos = 0; bpos < dents;)
+                for (size_t bpos = 0; bpos < dents;)
                 {
                     auto* d = reinterpret_cast<linux_dirent64*>(buf + bpos);
 

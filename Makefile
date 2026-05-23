@@ -1,10 +1,10 @@
 # TODO: replace ID with your own IDs, for example: 123456789_123456789
 SUBMITTERS := <student1-ID>_<student2-ID>
 COMPILER := g++
-COMPILER_FLAGS := --std=c++11 -Wall
-SRCS := Commands.cpp signals.cpp smash.cpp
+COMPILER_FLAGS := --std=c++11 -Wall -Iinclude
+SRCS := Commands.cpp signals.cpp smash.cpp $(shell find impl -name '*.cpp' | sort)
 OBJS := $(subst .cpp,.o,$(SRCS))
-HDRS := Commands.h signals.h
+HDRS := Commands.h signals.h $(shell find include -name '*.h' | sort)
 TESTS_INPUTS := $(wildcard test_input*.txt)
 TESTS_OUTPUTS := $(subst input,output,$(TESTS_INPUTS))
 SMASH_BIN := smash
@@ -21,7 +21,7 @@ $(SMASH_BIN): $(OBJS)
 	$(COMPILER) $(COMPILER_FLAGS) $^ -o $@
 
 $(OBJS): %.o: %.cpp
-	$(COMPILER) $(COMPILER_FLAGS) -c $^
+	$(COMPILER) $(COMPILER_FLAGS) -c $< -o $@
 
 submit: $(SRCS) $(HDRS) Makefile
 	@if ! cat /etc/os-release 2>/dev/null | grep -q "Ubuntu 18.04.4 LTS"; then \

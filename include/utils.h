@@ -49,9 +49,7 @@ namespace Shell
 
         std::string get_current_cwd();
 
-        // TODO: check if hex are acceptable (std::stoi)
         int parseInt(const std::string& s);
-
 
         // make sure to close fd.
         void traverse_dir(int fd, std::function<void(std::string)> cb);

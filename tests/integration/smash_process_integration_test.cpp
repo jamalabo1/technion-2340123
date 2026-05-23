@@ -1080,6 +1080,30 @@ TEST(SmashProcessIntegrationTest, RedirectionDoesNotLeakStdoutFds) {
     EXPECT_LE(after, baseline + 3) << result.stdoutOutput;
 }
 
+
+TEST(SmashProcessIntegrationTest, PipeDoesNotLeakStdoutFds)
+{
+    test_support::TempDir temp;
+    SmashSession session(temp.root());
+    session.sleepAndDrain(100);
+
+    const int baseline = fdCount(session.pid());
+    ASSERT_GT(baseline, 0);
+
+    // ? runs on bash
+    session.writeInput("(sleep 2 && echo test?)& | cat");
+
+    session.sleepAndDrain(1500);
+    const int after = fdCount(session.pid());
+
+    session.writeInput("quit\n");
+    const SmashRunResult result = session.finish(200);
+
+    expectExitedZero(result);
+    EXPECT_LE(after, baseline) << result.stdoutOutput;
+}
+
+
 TEST(SmashProcessIntegrationTest, PipesStdoutStderrAndNonDeadlock) {
     test_support::TempDir temp;
     const std::string script = temp.makeExecutableScript(

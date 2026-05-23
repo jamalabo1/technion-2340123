@@ -64,9 +64,6 @@ public:
     {
         ctx.get_flags().isBackground = false;
     }
-
-    //virtual void cleanup();
-    // TODO: Add your extra methods if needed
 };
 
 #endif //COMMAND_H

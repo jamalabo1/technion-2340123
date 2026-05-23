@@ -26,6 +26,48 @@ def test_stdout_pipe_external_to_builtin_runs_builtin(run, tmp_workdir: Path):
     assert_stderr_empty(result)
 
 
+def test_stdout_pipe_ignores_bg(run, tmp_workdir: Path):
+    result = run(["echo ignored& | cat", "quit"], cwd=tmp_workdir)
+    result.assert_exit_ok()
+    assert result.stdout_lines() == ["ignored"]
+    assert_stderr_empty(result)
+
+
+def test_stdout_pipe_ignores_blocking_right_bg(run, tmp_workdir: Path):
+    # exploiting the fact that ? runs on bash
+    result = run([
+        "(sleep 2 && echo test?)&& | cat", "quit"],
+        cwd=tmp_workdir,
+        timeout=3
+    )
+    result.assert_exit_ok()
+    assert result.stdout_lines() == ["test?"]
+    assert_stderr_empty(result)
+
+
+def test_stdout_pipe_ignores_blocking_left_bg(run, tmp_workdir: Path):
+    # exploiting the fact that ? runs on bash
+    result = run([
+        "(sleep 2 && echo test?) | cat&&", "quit"],
+        cwd=tmp_workdir,
+        timeout=3
+    )
+    result.assert_exit_ok()
+    assert result.stdout_lines() == ["test?"]
+    assert_stderr_empty(result)
+
+def test_stdout_pipe_ignores_blocking_bg(run, tmp_workdir: Path):
+    # exploiting the fact that ? runs on bash
+    result = run([
+        "(sleep 2 && echo test?)& | cat&&", "quit"],
+        cwd=tmp_workdir,
+        timeout=3
+    )
+    result.assert_exit_ok()
+    assert result.stdout_lines() == ["test?"]
+    assert_stderr_empty(result)
+
+
 def test_stderr_pipe_pipes_only_stderr_to_right_command(run, tmp_workdir: Path):
     script = create_executable_script(
         tmp_workdir / "both.sh",

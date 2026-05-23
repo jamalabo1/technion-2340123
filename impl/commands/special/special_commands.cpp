@@ -67,20 +67,28 @@ void USBInfoCommand::execute()
     // read the directories entries
     string dir = "/sys/bus/usb/devices";
 
-    int fd = open(dir.c_str(), O_RDONLY);
+    int fd = open(dir.c_str(), O_RDONLY | O_DIRECTORY);
     if (fd == -1)
     {
+        // if does not exist then we'll return non found as required
+        if (errno == ENOENT)
+        {
+            throw CommandErrorMessage("no USB devices found");
+        }
         throw SyscallException("open");
     }
 
 
-    std::vector<std::pair<int, string>> entries;
+    vector<pair<int, string>> entries;
 
-    int count = 0;
-    Shell::Utils::traverse_dir(fd, [&fd, &dir, &count, &entries](const string& name)
+    Shell::Utils::traverse_dir(fd, [&fd, &dir, &entries](const string& name)
     {
         // skip these
         if (name == "." || name == "..") return;
+
+        // TODO: root hubs and interfaces?
+        if(name.find(':') != string::npos) return;
+        if(name.find("usb") != string::npos) return;
 
         // ok so usbs that are in the directory exist (duh) but we are not interseted in all of them
         // so instead, we check a dummy devnum
@@ -94,7 +102,6 @@ void USBInfoCommand::execute()
             return;
         }
         // otherwise exists
-        count++;
 
         try
         {
@@ -119,7 +126,7 @@ void USBInfoCommand::execute()
     close(fd);
 
     // if no device was found
-    if (count == 0)
+    if (entries.empty())
     {
         throw CommandErrorMessage("no USB devices found");
     }
@@ -163,7 +170,6 @@ void USBInfoCommand::execute()
             << idVendor << ":" << idProduct << " "
             << manufacturer << " " << product << " "
             << "MaxPower: " << bMaxPower << std::endl;
-
         // Device 1: ID 0781:5583 SanDisk Ultra Fit  MaxPower: 200mA
     }
 }
