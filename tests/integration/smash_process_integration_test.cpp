@@ -1085,15 +1085,14 @@ TEST(SmashProcessIntegrationTest, PipeDoesNotLeakStdoutFds)
 {
     test_support::TempDir temp;
     SmashSession session(temp.root());
-    session.sleepAndDrain(100);
 
     const int baseline = fdCount(session.pid());
     ASSERT_GT(baseline, 0);
 
     // ? runs on bash
-    session.writeInput("(sleep 2 && echo test?)& | cat");
+    session.writeInput("(sleep 2 && echo test?)&& | cat&&\n");
 
-    session.sleepAndDrain(1500);
+    session.sleepAndDrain(2500);
     const int after = fdCount(session.pid());
 
     session.writeInput("quit\n");

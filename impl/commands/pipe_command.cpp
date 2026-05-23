@@ -27,7 +27,7 @@ void PipeCommand::execute()
     // pipe(fd)
     GUARDED_SYSCALL(pipe, fd);
 
-    // disable bg per requirement, also saves us from re-writing stdout
+    // disable bg per requirement, also saves us from re-wiring stdout
     cmd1->disableBg();
     cmd2->disableBg();
 

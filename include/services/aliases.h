@@ -37,7 +37,7 @@ public:
     bool removeAlias(const std::string& alias);
 
     // <key, alias> ordered by key ASC
-    std::vector<std::pair<std::string, std::string>> mapList();
+    std::vector<std::pair<std::string, std::string>> mapList() const;
 
     std::string tokenize(const std::string& word);
 };

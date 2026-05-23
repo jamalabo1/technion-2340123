@@ -46,8 +46,7 @@ bool Aliases::removeAlias(const std::string& alias)
     return true;
 }
 
-std::vector<std::pair<std::string, std::string>> Aliases::mapList()
-{
+std::vector<std::pair<std::string, std::string>> Aliases::mapList() const {
     std::vector<AliasNode> preresult;
 
     // first get the list

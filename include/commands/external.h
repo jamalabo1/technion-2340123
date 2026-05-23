@@ -7,24 +7,8 @@
 
 #include "command.h"
 
-class ExternalBehaviour
-{
-};
-
-class SimpleExternalBehaviour : ExternalBehaviour
-{
-};
-
-class ComplexExternalBehaviour : ExternalBehaviour
-{
-};
-
 class ExternalCommand : public Command
 {
-private:
-    ExternalBehaviour* behaviour;
-
-
 public:
     ExternalCommand(CommandCtx& ctx);
 
