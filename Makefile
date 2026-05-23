@@ -1,5 +1,5 @@
 # TODO: replace ID with your own IDs, for example: 123456789_123456789
-SUBMITTERS := <student1-ID>_<student2-ID>
+include .env
 COMPILER := g++
 COMPILER_FLAGS := --std=c++11 -Wall -Iinclude
 SRCS := Commands.cpp signals.cpp smash.cpp $(shell find impl -name '*.cpp' | sort)

@@ -8,7 +8,6 @@
 #include "exceptions.h"
 #include "utils.h"
 #include "built_in.h"
-#include <sys/utsname.h>
 
 using std::string;
 
@@ -164,21 +163,12 @@ void SysInfoCommand::execute()
     }
 
 
-    //TODO: if not calling uname then where to get arch from? and besides even if they try to create a diff in the uname, /proc/ files
-    // I don't think they will "fake" the arch right?
-
-    // to find the arch (although also provides the other information readily)
-    struct utsname buf{};
-    //
-    if (uname(&buf) == -1)
-    {
-        throw SyscallException("uname");
-    };
+    // according to @90 in piazza I can hardcode the arch
 
     // since the read_all will also read the \n, so might as well just keep it (and don't add std::endl;)
     std::cout << "System: " << sysname;
     std::cout << "Hostname: " << hostname;
     std::cout << "Kernel: " << release;
-    std::cout << "Architecture: " << buf.machine << std::endl;
+    std::cout << "Architecture: " << "x86_64" << std::endl;
     std::cout << "Boot Time: " << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S") << std::endl;
 }
