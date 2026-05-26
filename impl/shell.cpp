@@ -16,8 +16,7 @@
 using namespace std;
 using namespace Shell::Utils;
 
-SmallShell::SmallShell()
-{
+SmallShell::SmallShell() {
     cmdFactory = CommandFactory::getInstance();
 
     job_table = make_shared<JobTable>();
@@ -45,15 +44,13 @@ SmallShell::~SmallShell() {
 }
 
 // per assumptions: • I/O redirection and Pipe commands are correctly formatted.
-unique_ptr<Command> SmallShell::_handleIo(string cmd_s, size_t ioPos)
-{
+unique_ptr<Command> SmallShell::_handleIo(string cmd_s, size_t ioPos) {
     auto cmds = _split(cmd_s, ">");
-    if (cmds.size() != 2)
-    {
+    if (cmds.size() != 2) {
         throw std::logic_error("wrong number for i/o, although per assumptions, io/pipe are correctly formatted");
     }
 
-    unique_ptr<Command> cmd1 = CreateCommand(cmds[0].c_str());
+    unique_ptr<Command> cmd1 = CreateCommand(cmds[0]);
 
     // primitive but effective. x2
     const bool isAppend = cmd_s.find(">>") != string::npos;
@@ -81,11 +78,10 @@ unique_ptr<Command> SmallShell::_handlePipe(std::string cmd_s, size_t pipePos) {
     vector<string> paramsList{};
     // instead of reinventing the wheel, we'll pass it as params
 
-    // pipepos+1 is assumed to exist since pipes are correctly formatted.
+    // pipe pos+1 is assumed to exist since pipes are correctly formatted.
 
     bool hasEFlag = cmd_s[pipePos + 1] == '&';
-    if (hasEFlag)
-    {
+    if (hasEFlag) {
         // that's it we can remove it
         cmd_s.erase(cmd_s.begin() + pipePos + 1);
 
@@ -93,49 +89,52 @@ unique_ptr<Command> SmallShell::_handlePipe(std::string cmd_s, size_t pipePos) {
         paramsList.emplace_back("&");
     }
 
-    // we'll ignore isbg at this point
-    auto cmds = _split(cmd_s, R"(\|)");
+    // NOTE: must use _lsplit to handle nested pipes, like a | b | c
+    // this way a | b is treated as cmd2 and is recursively called.
+    // but make sure to insure alias is disabled all the way.
 
-    if (cmds.empty())
-    {
+    // we'll ignore isbg at this point
+    auto cmds = _lpart(cmd_s, pipePos);
+
+    if (cmds.empty()) {
         throw std::logic_error("no pipes?");
     }
-    if (cmds.size() != 2)
-    {
+    if (cmds.size() != 2) {
         throw std::logic_error("wrong number of pipes, although per assumptions, io/pipe are correctly formatted");
     }
 
     // this should also break the recursion cycle. since cmd sizes are strict monotonic dec and hence must hit 0.
-    if (cmds[0].size() * cmds[1].size() == 0)
-    {
+    if (cmds[0].size() * cmds[1].size() == 0) {
         throw std::logic_error("no pipes?");
     }
 
-    unique_ptr<Command> cmd1 = CreateCommand(cmds[0].c_str());
+    unique_ptr<Command> cmd1 = CreateCommand(cmds[0]);
 
     // it seems this is not symmetric (for aliases)
-    unique_ptr<Command> cmd2 = CreateCommand(cmds[1].c_str(), false);
+    unique_ptr<Command> cmd2 = CreateCommand(cmds[1]);
 
     CommandCtx pipeCtx(
-    "pipe",
-    wenv,
-    Parameters(paramsList),
-    CommandCtx::CommandFlags{}, // no flags at this point
-    services
-);
+        "pipe",
+        wenv,
+        Parameters(paramsList),
+        CommandCtx::CommandFlags{}, // no flags at this point
+        services
+    );
 
     return unique_ptr<PipeCommand>(new PipeCommand(pipeCtx, std::move(cmd1), std::move(cmd2)));
 }
 
+std::string SmallShell::_tokenizeCmd(const char *cmd_line) {
+    /**
+     * so it goes like this. [a]& is stripped of & and matched.
+     * [a]|, [a]< are matched up until the first char
+     * so in priority order, having | or < we match using the second mode, so
+     * s&|cat is not matched against alias s because it has &, and it's not recursive, so we treat s& as alias
+     *
+     */
 
-
-/**
-* Creates and returns a pointer to Command class which matches the given command line (cmd_line)
-*/
-unique_ptr<Command> SmallShell::CreateCommand(const char* cmd_line, bool tokenizeAlias)
-{
     // so that we don't modify the original
-    const auto raw_cmd_line = const_cast<char*>(cmd_line);
+    const auto raw_cmd_line = const_cast<char *>(cmd_line);
 
     // normalize
     string cmd_s = _trim(
@@ -144,41 +143,82 @@ unique_ptr<Command> SmallShell::CreateCommand(const char* cmd_line, bool tokeniz
         )
     );
 
+    // const bool isBackground = _checkAndRemoveBgCommand(cmd_s);
 
+    //so save myself all the headache, i'll instead match char char, until I hit | > or &
+    // then i'll stop, return the pos and what was matched.
+    // then tokenize using alias
+    // then add a whitespace to save my self the trouble afterwards? since [w]| or [w]& would'nt matter
+
+
+    pair<string, size_t> cord = _commandWithPos(cmd_s);
+
+    string candidate = cord.first;
+
+    candidate = services->aliases->tokenize(candidate);
+
+    // replace with matched alias with a whitespace.
+    cmd_s.replace(0, cord.second, candidate + " ");
+
+
+    // size_t pipePos = cmd_s.find_first_of('|');
+    // size_t ioPos = cmd_s.find_first_of('>');
+    //
+    //
+    // // has pipe or io
+    // if (pipePos != std::string::npos || ioPos != std::string::npos) {
+    //     // then tokenize the immediate predecessor
+    //
+    //     size_t pos = _nonNpos(ioPos, pipePos);
+    //
+    //     // the command is invalid!!!! and we assumed otherwise
+    //     if (pos != 0) {
+    //         string candidate = cmd_s.substr(0, pos);
+    //         candidate = services->aliases->tokenize(candidate);
+    //
+    //         cmd_s.replace(0, pos, candidate);
+    //     }
+    // } else {
+    //
+    // }
+
+    return cmd_s;
+}
+
+/**
+* Creates and returns a pointer to Command class which matches the given command line (cmd_line)
+*/
+unique_ptr<Command> SmallShell::CreateCommand(std::string cmd_s) {
+    // normalize
+    cmd_s = _trim(
+        cmd_s
+    );
+
+    // so that we don't modify the original
     const bool isBackground = _checkAndRemoveBgCommand(cmd_s);
+
 
     //command creation rejected
     if (cmd_s.empty()) return nullptr;
 
-    size_t pipePos = cmd_s.find_first_of('|');
-    if (pipePos != std::string::npos)
-    {
-        // if pipe, then recursive create both
-        return _handlePipe(cmd_s, pipePos);
-    }
-
-    size_t ioPos = cmd_s.find_first_of('>');
-    if (ioPos != std::string::npos)
-    {
-        // if io, then recursive create both
-        return _handleIo(cmd_s, ioPos);
-    }
-
-
-    string candidate = _command(cmd_s);
-
-    // since pipes are not symmetrical
-    if (tokenizeAlias)
-    {
-        // tokenize
-        candidate = services->aliases->tokenize(candidate);
-    }
-
-    // perform replacement (maybe also get the index from _command)
-    cmd_s.replace(0, cmd_s.find_first_of(WHITESPACE), candidate);
-
-    // extract command again, since alias may contain whitespace
+    // extract command
     string command = _command(cmd_s);
+
+
+    // ONLY if the command is alias ... then we disable |> parsing since it can appear in the alias.
+    if (command != "alias") {
+        size_t pipePos = cmd_s.find_first_of('|');
+        if (pipePos != std::string::npos) {
+            // if pipe, then recursive create both
+            return _handlePipe(cmd_s, pipePos);
+        }
+
+        size_t ioPos = cmd_s.find_first_of('>');
+        if (ioPos != std::string::npos) {
+            // if io, then recursive create both
+            return _handleIo(cmd_s, ioPos);
+        }
+    }
 
     // get params
     const vector<string> paramsList = _params(cmd_s);
@@ -201,13 +241,10 @@ unique_ptr<Command> SmallShell::CreateCommand(const char* cmd_line, bool tokeniz
     // the problem is this move
     auto cmd = cmdFactory->create(command, ctx);
 
-    if (cmd == nullptr)
-    {
+    if (cmd == nullptr) {
         //then this is an external command.
         cmd = new ExternalCommand(ctx);
-    }
-    else
-    {
+    } else {
         // per requirement that only external can run in background. further disabling may occur in i/o or pipe
         cmd->disableBg();
     }
@@ -215,33 +252,28 @@ unique_ptr<Command> SmallShell::CreateCommand(const char* cmd_line, bool tokeniz
     return unique_ptr<Command>(cmd);
 }
 
-void SmallShell::executeCommand(const char* cmd_line)
-{
-    try
-    {
-        // this should cover all 3 possible states for checking the jobs
-        // TODO: check if they want explicit 3 checks.
-        // TODO: waitpid error gets me in an infinite loop
+void SmallShell::executeCommand(const char *cmd_line) {
+    try {
+        // as per before any command
         job_table->removeFinishedJobs();
 
-        auto cmd = CreateCommand(cmd_line);
+        auto tokenized_cmd = _tokenizeCmd(cmd_line);
 
-        if (cmd == nullptr)
-        {
+        auto cmd = CreateCommand(tokenized_cmd);
+
+        if (cmd == nullptr) {
             //creation rejected, handle.
             return;
         }
 
-        const CommandCtx& ctx = cmd->get_ctx();
+        const CommandCtx &ctx = cmd->get_ctx();
 
-        try
-        {
+        try {
             // exec + prepare are unifed under run
             cmd->run();
 
             // if is a bg process, then after exec i will get a proc
-            if (ctx.get_flags().isBackground && cmd->get_proc() != nullptr)
-            {
+            if (ctx.get_flags().isBackground && cmd->get_proc() != nullptr) {
                 // as per requirements interpretation i'll do another check
                 job_table->removeFinishedJobs();
 
@@ -251,36 +283,28 @@ void SmallShell::executeCommand(const char* cmd_line)
                     cmd->get_proc()
                 );
             }
-        }
-        catch (const CommandDomainError& e)
-        {
+        } catch (const CommandDomainError &e) {
             std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ": " << e.what() << std::endl;
 
             // report the error and quit
-            if (services->children->isChild)
-            {
+            if (services->children->isChild) {
                 exit(0);
             }
         }
-    }
-    catch (const SyscallException& e)
-    {
+    } catch (const SyscallException &e) {
         string errorMsg = APP_NAME + " error: " + e.what() + " failed";
 
         perror(errorMsg.c_str());
         // I need a global child error handling here.
-        if (services->children->isChild)
-        {
+        if (services->children->isChild) {
             exit(0);
         }
     }
-    catch (const std::exception& e)
-    {
+    catch (const std::exception &e) {
         // TODO: what do general exception means? (they didnt originate from the app)
         std::cerr << "general error: " << e.what() << std::endl;
 
-        if (services->children->isChild)
-        {
+        if (services->children->isChild) {
             exit(0);
         }
 
@@ -289,8 +313,7 @@ void SmallShell::executeCommand(const char* cmd_line)
     }
 }
 
-void SmallShell::kill_fg_proc()
-{
+void SmallShell::kill_fg_proc() {
     // get the proc
     auto proc = get_fg_proc();
 
@@ -305,8 +328,7 @@ void SmallShell::kill_fg_proc()
     services->proc_management->clearFgProc();
 }
 
-void SmallShell::forward_signal(int sigNum)
-{
+void SmallShell::forward_signal(int sigNum) {
     const std::string termName = get_terminalName();
 
     std::cout << termName << ": " << "got ctrl-C" << std::endl;
@@ -314,8 +336,7 @@ void SmallShell::forward_signal(int sigNum)
     auto proc = get_fg_proc();
 
     // if there is any currently running fg proc
-    if (proc != nullptr)
-    {
+    if (proc != nullptr) {
         kill_fg_proc();
 
         std::cout << termName << ":" << " process " << proc->pId << " was killed" << std::endl;

@@ -1,5 +1,5 @@
 # TODO: replace ID with your own IDs, for example: 123456789_123456789
-#include .env
+include .env
 COMPILER := g++
 COMPILER_FLAGS := --std=c++11 -Wall -Iinclude
 SRCS := $(filter-out test_err.cpp,$(wildcard *.cpp))

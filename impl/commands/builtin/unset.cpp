@@ -86,7 +86,6 @@ void UnSetEnvCommand::execute()
     while (__environ[read] != nullptr)
     {
         // if this env is not for deletion, then let's replace it with last index of deletion (write)
-        // string key = Shell::Utils::_split(__environ[read], "=")[0];
         string var = __environ[read];
 
         string key = var.substr(0, var.find_first_of('='));

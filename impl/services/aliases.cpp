@@ -6,23 +6,19 @@
 #include "command_factory.h"
 
 
-bool Aliases::containsAlias(const std::string& alias)
-{
+bool Aliases::containsAlias(const std::string &alias) {
     return aliases.find(alias) != aliases.end();
 }
 
-Aliases::Aliases()
-{
+Aliases::Aliases() {
     // factory_ = CommandFactory::getInstance();
 }
 
-bool Aliases::addAlias(const std::string& alias, const std::string& value)
-{
+bool Aliases::addAlias(const std::string &alias, const std::string &value) {
     if (containsAlias(alias)) return false;
 
     // check if reserved
-    if (CommandFactory::containsCommand(alias))
-    {
+    if (CommandFactory::containsCommand(alias)) {
         return false;
     }
 
@@ -36,8 +32,7 @@ bool Aliases::addAlias(const std::string& alias, const std::string& value)
     return true;
 }
 
-bool Aliases::removeAlias(const std::string& alias)
-{
+bool Aliases::removeAlias(const std::string &alias) {
     // maybe use size checkers
     if (!containsAlias(alias)) return false;
 
@@ -46,36 +41,31 @@ bool Aliases::removeAlias(const std::string& alias)
     return true;
 }
 
-std::vector<std::pair<std::string, std::string>> Aliases::mapList() const {
+std::vector<std::pair<std::string, std::string> > Aliases::mapList() const {
     std::vector<AliasNode> preresult;
 
     // first get the list
-    for (const auto& alias : aliases)
-    {
+    for (const auto &alias: aliases) {
         preresult.push_back(alias.second);
     }
 
     // then order asc
-    std::sort(preresult.begin(), preresult.end(), [](const AliasNode& lhs, const AliasNode& rhs)
-    {
+    std::sort(preresult.begin(), preresult.end(), [](const AliasNode &lhs, const AliasNode &rhs) {
         return lhs.id < rhs.id;
     });
 
     // then return key value
-    std::vector<std::pair<std::string, std::string>> result;
+    std::vector<std::pair<std::string, std::string> > result;
 
-    for (const auto& alias : preresult)
-    {
+    for (const auto &alias: preresult) {
         result.emplace_back(alias.key, alias.value);
     }
 
     return result;
 }
 
-std::string Aliases::tokenize(const std::string& word)
-{
+std::string Aliases::tokenize(const std::string &word) {
     // since recursive will not be tested, then i'll use this simple one
-
     if (!containsAlias(word)) return word;
 
     return aliases[word].value;

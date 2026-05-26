@@ -34,8 +34,10 @@ private:
 
     std::unique_ptr<Command> _handlePipe(std::string cmd_s, size_t pipePos);
 
+    std::string _tokenizeCmd(const char* cmd_line);
+
 public:
-    std::unique_ptr<Command> CreateCommand(const char* cmd_line, bool tokenizeAlias = true);
+    std::unique_ptr<Command> CreateCommand( std::string cmd_line);
 
     SmallShell(SmallShell const&) = delete; // disable copy ctor
     void operator=(SmallShell const&) = delete; // disable = operator

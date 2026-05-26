@@ -14,12 +14,11 @@ FILES = [
     *Path(ROOT / "impl").glob("**/*.cpp"),
     *Path(ROOT).glob("*.cpp"),
     *Path(ROOT).glob("*.h"),
-    # ROOT / ".env",
+    ROOT / ".env",
     ROOT / "Makefile",
     ROOT / "test_input1.txt",
     ROOT / "test_expected_output1.txt",
-
-    # ROOT / "submitters.txt"
+    ROOT / "submitters.txt"
 ]
 
 OUT.mkdir(exist_ok=True)

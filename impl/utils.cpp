@@ -40,6 +40,21 @@ namespace Shell {
             return _rtrim(_ltrim(s));
         }
 
+
+        // left split, or first of split
+        vector<string> _lsplit(const string &param, const string &delim) {
+            size_t pos = param.find_first_of(delim);
+
+            return _lpart(param, pos);
+        }
+
+        vector<string> _lpart(const string &param, const size_t &pos) {
+            string elm1 = param.substr(0, pos);
+            string elm2 = param.substr(pos + 1);
+
+            return {elm1, elm2};
+        }
+
         vector<string> _split(const string &param, const string &delim) {
             std::regex regexz(delim);
             std::vector<std::string> list(
@@ -91,6 +106,32 @@ namespace Shell {
 
         string _command(const string &cmd_line) {
             return cmd_line.substr(0, cmd_line.find_first_of(WHITESPACE));
+        }
+
+        pair<string, size_t> _commandWithPos(const string &cmd_line) {
+            for (size_t i = 0; i < cmd_line.size(); i++) {
+                char c = cmd_line[i];
+
+                //\n\r\t\f\v
+                // if special char then stop
+                if (c == '|' || c == '>' || c == '&' ||
+                    c == '\n' || c == '\r' || c == '\t' ||
+                    c == '\f' || c == '\v' || c == ' '
+                ) {
+                    return {cmd_line.substr(0, i), i};
+                }
+            }
+            // otherwise the whole string
+            return {cmd_line, cmd_line.size()};
+        }
+
+        // first non npos
+        size_t _nonNpos(size_t a, size_t b) {
+            auto n = std::string::npos;
+
+            // if a and b are n then return n otherwise return the first non n
+
+            return (a == n ? (b == n ? n : b) : a);
         }
 
         vector<string> _params(const string &trimmed) {

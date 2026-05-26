@@ -1,0 +1,9 @@
+{
+  "input": [
+    "alias lw='echo hello | cat'",
+    "lw"
+  ],
+  "output": [
+    "hello"
+  ]
+}
