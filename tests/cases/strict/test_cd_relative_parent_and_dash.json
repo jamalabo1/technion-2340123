@@ -1,0 +1,17 @@
+{
+  "description": "cd should support relative paths, parent traversal, and cd - toggling.",
+  "input": [
+    "cd pipe",
+    "pwd | /bin/grep -o tests/cases/pipe",
+    "cd ..",
+    "pwd | /bin/grep -o tests/cases",
+    "cd -",
+    "pwd | /bin/grep -o tests/cases/pipe"
+  ],
+  "output": [
+    "tests/cases/pipe",
+    "tests/cases",
+    "tests/cases/pipe"
+  ],
+  "stderr": []
+}

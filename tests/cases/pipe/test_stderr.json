@@ -1,0 +1,12 @@
+[
+  {
+    "description": "Standard error pipe operator (|&) correctly routes a child process's stderr stream to the consumer's stdin stream.",
+    "input": [
+      "./stderr_tester |& cat"
+    ],
+    "output": [
+      "std_out"
+    ],
+    "stderr": []
+  }
+]

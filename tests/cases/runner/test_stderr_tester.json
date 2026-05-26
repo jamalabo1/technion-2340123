@@ -1,0 +1,10 @@
+{
+  "description": "Runner must compare stderr separately from stdout when ./stderr_tester writes only to stderr.",
+  "input": [
+    "./stderr_tester"
+  ],
+  "output": [],
+  "stderr": [
+    "std_out"
+  ]
+}

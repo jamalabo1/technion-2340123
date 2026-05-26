@@ -1,0 +1,12 @@
+{
+  "description": "Pipes should run both sides, support recursive pipe chains used by existing cases, and pipe stderr with |&.",
+  "input": [
+    "echo 1 | ./s | ./s | ./s",
+    "/bin/ls definitely_missing_smash_json |& /bin/grep No"
+  ],
+  "output": [
+    "8",
+    "/bin/ls: cannot access 'definitely_missing_smash_json': No such file or directory"
+  ],
+  "stderr": []
+}

@@ -1,0 +1,34 @@
+{
+  "description": "fg and kill invalid argument and missing job errors should be exact and ordered.",
+  "input": [
+    "fg",
+    "fg 1 2",
+    "fg abc",
+    "fg 0",
+    "fg -1",
+    "fg 7",
+    "kill",
+    "kill -9",
+    "kill 9 1",
+    "kill -abc 1",
+    "kill -9 abc",
+    "kill -9 0",
+    "kill -9 99"
+  ],
+  "output": [],
+  "stderr": [
+    "smash error: fg: jobs list is empty",
+    "smash error: fg: invalid arguments",
+    "smash error: fg: invalid arguments",
+    "smash error: fg: invalid arguments",
+    "smash error: fg: invalid arguments",
+    "smash error: fg: job-id 7 does not exist",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: invalid arguments",
+    "smash error: kill: job-id 99 does not exist"
+  ]
+}

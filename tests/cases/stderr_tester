@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [ -t 0 ]; then
+    # no piped/file input; stdin is terminal
+    echo "std_out" >&2
+else
+    # stdin is pipe/file
+    if IFS= read -r line; then
+        printf '%s+\n' "$line" >&2
+        while IFS= read -r line; do
+            printf '%s+\n' "$line" >&2
+        done
+    else
+        # stdin exists but is empty
+        echo "std_out" >&2
+    fi
+fi

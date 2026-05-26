@@ -1,0 +1,29 @@
+{
+  "description": "Alias format should be strict, alias expansion should work before pipes, and listing should keep creation order.",
+  "input": [
+    "alias ='pwd'",
+    "alias double=\"pwd\"",
+    "alias bad-name='pwd'",
+    "alias pipe='echo 1|./s'",
+    "alias later='/bin/echo later'",
+    "pipe|./s",
+    "alias",
+    "unalias",
+    "unalias missing later",
+    "alias"
+  ],
+  "output": [
+    "4",
+    "pipe='echo 1|./s'",
+    "later='/bin/echo later'",
+    "pipe='echo 1|./s'",
+    "later='/bin/echo later'"
+  ],
+  "stderr": [
+    "smash error: alias: invalid alias format",
+    "smash error: alias: invalid alias format",
+    "smash error: alias: invalid alias format",
+    "smash error: unalias: not enough arguments",
+    "smash error: unalias: missing alias does not exist"
+  ]
+}

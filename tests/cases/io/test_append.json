@@ -1,0 +1,15 @@
+[
+  {
+    "description": "Append redirection (>>) correctly creates a new file if one does not exist, mirroring standard override (>) behavior initially.",
+    "input": [
+      "echo init_state > append_test.txt",
+      "echo more_text >> append_test.txt",
+      "cat append_test.txt"
+    ],
+    "output": [
+      "init_state",
+      "more_text"
+    ],
+    "stderr": []
+  }
+]

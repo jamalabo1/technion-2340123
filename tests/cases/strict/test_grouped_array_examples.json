@@ -1,0 +1,27 @@
+[
+  {
+    "name": "empty_lines_are_ignored",
+    "description": "A top-level array element is an independent test run.",
+    "input": [
+      "",
+      "   ",
+      "/bin/echo grouped-one"
+    ],
+    "output": [
+      "grouped-one"
+    ],
+    "stderr": []
+  },
+  {
+    "name": "alias_expands_in_grouped_file",
+    "description": "Named array elements are reported as file.json::name.",
+    "input": [
+      "alias say='/bin/echo grouped-two'",
+      "say"
+    ],
+    "output": [
+      "grouped-two"
+    ],
+    "stderr": []
+  }
+]

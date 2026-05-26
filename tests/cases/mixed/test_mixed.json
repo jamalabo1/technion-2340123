@@ -1,0 +1,26 @@
+[
+  {
+    "description": "Alias expansion is isolated to the first word and stops correctly at I/O redirection special characters.",
+    "input": [
+      "alias e='echo alias_expansion_test'",
+      "e>redir_out.txt",
+      "cat redir_out.txt"
+    ],
+    "output": [
+      "alias_expansion_test"
+    ],
+    "stderr": []
+  },
+  {
+    "description": "Commands containing I/O redirection discard background execution directives (&), maintaining synchronous foreground execution and bypassing the jobs list.",
+    "input": [
+      "echo sync_write > bypass.txt &",
+      "jobs",
+      "cat bypass.txt"
+    ],
+    "output": [
+      "sync_write"
+    ],
+    "stderr": []
+  }
+]

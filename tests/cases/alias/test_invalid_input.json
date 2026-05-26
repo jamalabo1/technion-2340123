@@ -1,0 +1,20 @@
+[
+  {
+    "description": "Alias format validation rejects non-alphanumeric characters, enforces strict spacing, and prevents reserved command collisions.",
+    "input": [
+      "alias bad-name='echo 1'",
+      "alias cd='echo 2'",
+      "alias valid_1='echo 3'",
+      "alias spacing ='echo 4'",
+      "alias"
+    ],
+    "output": [
+      "valid_1='echo 3'"
+    ],
+    "stderr": [
+      "smash error: alias: invalid alias format",
+      "smash error: alias: cd already exists or is a reserved command",
+      "smash error: alias: invalid alias format"
+    ]
+  }
+]

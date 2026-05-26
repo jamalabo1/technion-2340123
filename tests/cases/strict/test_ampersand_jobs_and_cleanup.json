@@ -1,0 +1,14 @@
+{
+  "description": "Only a trailing ampersand backgrounds an external command, and live jobs should be listed.",
+  "input": [
+    "/bin/echo token&not_bg",
+    "sleep 1 &",
+    "jobs",
+    "/bin/sleep 1.2"
+  ],
+  "output": [
+    "token&not_bg",
+    "[1] sleep 1 &"
+  ],
+  "stderr": []
+}

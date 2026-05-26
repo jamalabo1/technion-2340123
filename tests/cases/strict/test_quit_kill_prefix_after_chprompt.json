@@ -1,0 +1,11 @@
+{
+  "description": "quit kill summary should use the required smash prefix even after chprompt.",
+  "input": [
+    "chprompt bye",
+    "quit kill"
+  ],
+  "output": [
+    "bye: sending SIGKILL signal to 0 jobs:"
+  ],
+  "stderr": []
+}

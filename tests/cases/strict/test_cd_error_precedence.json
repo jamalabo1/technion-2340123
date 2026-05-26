@@ -1,0 +1,17 @@
+{
+  "description": "cd should emit exact errors for unset OLDPWD, failed chdir, and too many arguments.",
+  "input": [
+    "cd -",
+    "cd definitely_missing_directory",
+    "cd - extra",
+    "chprompt custom",
+    "cd dir1 dir2"
+  ],
+  "output": [],
+  "stderr": [
+    "smash error: cd: OLDPWD not set",
+    "smash error: chdir failed: No such file or directory",
+    "smash error: cd: too many arguments",
+    "smash error: cd: too many arguments"
+  ]
+}

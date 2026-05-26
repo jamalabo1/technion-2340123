@@ -1,0 +1,10 @@
+{
+  "description": "The du command accurately enforces argument count constraints.",
+  "input": [
+    "du /tmp /var"
+  ],
+  "output": [],
+  "stderr": [
+    "smash error: du: too many arguments"
+  ]
+}

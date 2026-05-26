@@ -155,19 +155,48 @@ def run_smash_case(
     return stdout, stderr, process.returncode, timed_out, time.monotonic() - started_at
 
 
-def run_case(
+def load_case_entries(path: Path, cases_dir: Path) -> list[tuple[str, dict[str, Any]]]:
+    with path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    relative_path = str(path.relative_to(cases_dir))
+    if isinstance(data, dict):
+        return [(relative_path, data)]
+
+    if isinstance(data, list):
+        if not data:
+            raise ValueError(f"{path}: top-level test array must not be empty")
+
+        entries: list[tuple[str, dict[str, Any]]] = []
+        for index, item in enumerate(data, start=1):
+            if not isinstance(item, dict):
+                raise ValueError(f"{path}: test array element #{index} must be an object")
+
+            name = item.get("name")
+            if name is None:
+                case_name = f"{relative_path}[{index}]"
+            else:
+                if not isinstance(name, str) or not name.strip():
+                    raise ValueError(f"{path}: test array element #{index} has an invalid `name`")
+                case_name = f"{relative_path}::{name}"
+            entries.append((case_name, item))
+        return entries
+
+    raise ValueError(f"{path}: top-level JSON value must be an object or an array of objects")
+
+
+def run_case_entry(
     path: Path,
+    case_name: str,
+    data: dict[str, Any],
     binary: Path,
-    cases_dir: Path,
     cwd: Path,
     timeout: float,
     exact: bool,
 ) -> CaseResult:
-    with path.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
-
     commands = load_text_list(data.get("input"), "input", path)
     expected_stdout = expected_lines(load_text_list(data.get("output"), "output", path), exact=exact)
+    has_stderr_expectation = "stderr" in data
     expected_stderr = expected_lines(load_text_list(data.get("stderr"), "stderr", path), exact=exact)
 
     stdout_text, stderr_text, returncode, timed_out, elapsed = run_smash_case(
@@ -180,11 +209,11 @@ def run_case(
     actual_stdout = normalize_lines(stdout_text, exact=exact)
     actual_stderr = normalize_lines(stderr_text, exact=exact)
     stdout_diff = unified_diff(expected_stdout, actual_stdout, "stdout")
-    stderr_diff = unified_diff(expected_stderr, actual_stderr, "stderr") if expected_stderr else ""
+    stderr_diff = unified_diff(expected_stderr, actual_stderr, "stderr") if has_stderr_expectation else ""
     passed = not timed_out and returncode == 0 and not stdout_diff and not stderr_diff
 
     return CaseResult(
-        name=str(path.relative_to(cases_dir)),
+        name=case_name,
         passed=passed,
         timed_out=timed_out,
         returncode=returncode,
@@ -194,6 +223,28 @@ def run_case(
         stdout=actual_stdout,
         stderr=actual_stderr,
     )
+
+
+def run_case(
+    path: Path,
+    binary: Path,
+    cases_dir: Path,
+    cwd: Path,
+    timeout: float,
+    exact: bool,
+) -> list[CaseResult]:
+    return [
+        run_case_entry(
+            path=path,
+            case_name=case_name,
+            data=data,
+            binary=binary,
+            cwd=cwd,
+            timeout=timeout,
+            exact=exact,
+        )
+        for case_name, data in load_case_entries(path, cases_dir)
+    ]
 
 
 def discover_cases(cases_dir: Path, pattern: str) -> list[Path]:
@@ -223,7 +274,10 @@ def print_result(result: CaseResult, verbose: bool) -> None:
 def parse_args() -> argparse.Namespace:
     root = project_root()
     parser = argparse.ArgumentParser(
-        description="Run JSON input/output cases from tests/cases against the smash executable."
+        description=(
+            "Run JSON input/output cases from tests/cases against the smash executable. "
+            "Each JSON file may be one case object or an array of case objects."
+        )
     )
     parser.add_argument(
         "--binary",
@@ -295,17 +349,18 @@ def main() -> int:
     print(f"cases:  {cases_dir}")
     print(f"workdir: {workdir}\n")
 
-    results = [
-        run_case(
-            path=case,
-            binary=binary,
-            cases_dir=cases_dir,
-            cwd=workdir,
-            timeout=args.timeout,
-            exact=args.exact,
+    results: list[CaseResult] = []
+    for case in cases:
+        results.extend(
+            run_case(
+                path=case,
+                binary=binary,
+                cases_dir=cases_dir,
+                cwd=workdir,
+                timeout=args.timeout,
+                exact=args.exact,
+            )
         )
-        for case in cases
-    ]
 
     for result in results:
         print_result(result, args.verbose)

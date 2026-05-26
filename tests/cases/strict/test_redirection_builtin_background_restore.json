@@ -1,0 +1,21 @@
+{
+  "description": "Redirection should truncate/append, ignore background for built-ins, restore stdout, and keep jobs empty.",
+  "input": [
+    "/bin/rm -f /tmp/smash_json_redir_out.txt /tmp/smash_json_redir_pid.txt",
+    "showpid > /tmp/smash_json_redir_pid.txt &",
+    "jobs",
+    "cat /tmp/smash_json_redir_pid.txt | /bin/grep -o smash",
+    "/bin/echo first > /tmp/smash_json_redir_out.txt",
+    "/bin/echo second >> /tmp/smash_json_redir_out.txt",
+    "cat /tmp/smash_json_redir_out.txt",
+    "/bin/echo after",
+    "/bin/rm -f /tmp/smash_json_redir_out.txt /tmp/smash_json_redir_pid.txt"
+  ],
+  "output": [
+    "smash",
+    "first",
+    "second",
+    "after"
+  ],
+  "stderr": []
+}

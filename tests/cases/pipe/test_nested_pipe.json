@@ -1,0 +1,58 @@
+[
+  {
+    "description": "test nested | and |& pipes together",
+    "input": [
+      "./stderr_tester |& cat | cat"
+    ],
+    "output": [
+      "std_out"
+    ]
+  },
+  {
+    "input": [
+      "echo hello | ./stderr_tester |& cat"
+    ],
+    "output": [
+      "hello+"
+    ]
+  },
+  {
+    "description": "stdout+",
+    "input": [
+      "./stderr_tester |& ./stderr_tester"
+    ],
+    "stderr": [
+      "std_out+"
+    ]
+  },
+  {
+    "input": [
+      "echo 1 | ./s | ./s | ./stderr_tester |& cat"
+    ],
+    "output": [
+      "4+"
+    ]
+  },
+  {
+    "description": "ignores stdout",
+    "input": [
+      "./stderr_tester | ./stderr_tester"
+    ],
+    "note": "the catch here is that stderr writes to stdout and cat does not modify the result",
+    "stderr": [
+      "std_out",
+      "std_out"
+    ]
+  },
+  {
+    "description": "ignores stdout",
+    "input": [
+      "echo 1 |./s | ./s | ./stderr_tester | ./stderr_tester"
+    ],
+    "note": "the catch here is that stderr writes to stdout and cat does not modify the result",
+    "stderr": [
+      "4+",
+      "std_out"
+    ]
+  }
+]

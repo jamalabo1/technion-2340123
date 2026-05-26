@@ -1,0 +1,13 @@
+{
+  "description": "A failed external exec should report via stderr only and smash should continue accepting commands.",
+  "input": [
+    "./definitely_missing_json_case_command",
+    "/bin/echo still_running"
+  ],
+  "output": [
+    "still_running"
+  ],
+  "stderr": [
+    "smash error: execvp failed: No such file or directory"
+  ]
+}

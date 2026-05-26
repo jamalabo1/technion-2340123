@@ -1,0 +1,8 @@
+{
+  "description": "Deliberately failing verification case: ./stderr_tester writes stderr while the case requires stderr to be empty.",
+  "input": [
+    "./stderr_tester"
+  ],
+  "output": [],
+  "stderr": []
+}
