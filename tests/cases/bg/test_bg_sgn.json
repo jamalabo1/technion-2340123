@@ -1,7 +1,6 @@
 [
   {
     "input": [
-      "cd /mnt/c/Users/jamal/CLionProjects/technion-2340123",
       "du&",
       "jobs",
       "quit kill"
