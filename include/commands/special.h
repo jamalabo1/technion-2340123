@@ -7,10 +7,19 @@
 
 #include "command.h"
 
-DEFINE_COMMAND("du", DiskUsageCommand, Command);
 
-DEFINE_COMMAND("whoami", WhoAmICommand, Command);
+class SpecialCommand : public Command
+{
+public:
+    SpecialCommand(CommandCtx&);
 
-DEFINE_COMMAND("usbinfo", USBInfoCommand, Command);
+    void run() override;
+};
+
+DEFINE_COMMAND("du", DiskUsageCommand, SpecialCommand);
+
+DEFINE_COMMAND("whoami", WhoAmICommand, SpecialCommand);
+
+DEFINE_COMMAND("usbinfo", USBInfoCommand, SpecialCommand);
 
 #endif //SPECIAL_H

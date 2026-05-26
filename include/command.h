@@ -54,7 +54,7 @@ public:
     };
 
     // a unifed call
-    void run()
+    virtual void run()
     {
         prepare();
         execute();

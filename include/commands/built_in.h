@@ -14,10 +14,6 @@ public:
     BuiltInCommand(CommandCtx& ctx) : Command(ctx)
     {
     };
-
-    virtual ~BuiltInCommand()
-    {
-    }
 };
 
 

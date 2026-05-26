@@ -14,6 +14,43 @@
 
 using namespace std;
 
+SpecialCommand::SpecialCommand(CommandCtx& ctx) : Command(ctx)
+{
+}
+
+void SpecialCommand::run()
+{
+    // prepare on parent
+    prepare();
+
+    // if not background then run on parent noramlly
+    if (!ctx.get_flags().isBackground)
+    {
+        execute();
+
+        return;
+    }
+
+    // otherwise create child
+    int child = services->children->fork();
+
+    if (child == 0)
+    {
+        // execute
+        execute();
+
+        // after execute i can exit from here our give to the parent, but i'll exit either way
+        exit(0);
+    }
+    else
+    {
+        // save proc
+        setProc(child);
+        // and dont wait for it, the shell's run will create a job for it
+    }
+}
+
+
 REGISTER_COMMAND(WhoAmICommand);
 
 void WhoAmICommand::execute()
@@ -87,8 +124,8 @@ void USBInfoCommand::execute()
         if (name == "." || name == "..") return;
 
         // TODO: root hubs and interfaces?
-        if(name.find(':') != string::npos) return;
-        if(name.find("usb") != string::npos) return;
+        if (name.find(':') != string::npos) return;
+        if (name.find("usb") != string::npos) return;
 
         // ok so usbs that are in the directory exist (duh) but we are not interseted in all of them
         // so instead, we check a dummy devnum
