@@ -56,16 +56,16 @@ namespace Shell {
         }
 
         vector<string> _split(const string &param, const string &delim) {
-            std::regex regexz(delim);
-            std::vector<std::string> list(
-                std::sregex_token_iterator(
+            regex regexz(delim);
+            vector<string> list(
+                sregex_token_iterator(
                     param.begin(),
                     param.end(), regexz, -1
                 ),
-                std::sregex_token_iterator()
+                sregex_token_iterator()
             );
 
-            std::vector<string> result;
+            vector<string> result;
             // normalize and filter
             for (auto &basic_string: list) {
                 basic_string = _trim(basic_string);
@@ -74,20 +74,6 @@ namespace Shell {
                 }
             }
             return result;
-        }
-
-        int _parseCommandLine(const char *cmd_line, char **args) {
-            FUNC_ENTRY()
-            int i = 0;
-            std::istringstream iss(_trim(string(cmd_line)).c_str());
-            for (std::string s; iss >> s;) {
-                args[i] = (char *) malloc(s.length() + 1);
-                memset(args[i], 0, s.length() + 1);
-                strcpy(args[i], s.c_str());
-                args[++i] = NULL;
-            }
-            return i;
-            FUNC_EXIT()
         }
 
         // must be called after trim
@@ -113,7 +99,7 @@ namespace Shell {
                 char c = cmd_line[i];
 
                 //\n\r\t\f\v
-                // if special char then stop
+                // if special char then stop, it seems this is exactly std::isspace but keeping it for clarity
                 if (c == '|' || c == '>' || c == '&' ||
                     c == '\n' || c == '\r' || c == '\t' ||
                     c == '\f' || c == '\v' || c == ' '
@@ -123,15 +109,6 @@ namespace Shell {
             }
             // otherwise the whole string
             return {cmd_line, cmd_line.size()};
-        }
-
-        // first non npos
-        size_t _nonNpos(size_t a, size_t b) {
-            auto n = std::string::npos;
-
-            // if a and b are n then return n otherwise return the first non n
-
-            return (a == n ? (b == n ? n : b) : a);
         }
 
         vector<string> _params(const string &trimmed) {
@@ -147,10 +124,6 @@ namespace Shell {
             return _split(paramsRaw);
         }
 
-        void KillProc(int pId) {
-            SignalProc(pId, SIGKILL);
-        }
-
         void SignalProc(int pId, int sigNum) {
             // send kill signal to pid
             int status = kill(pId, sigNum);
@@ -159,9 +132,10 @@ namespace Shell {
             }
         }
 
-        bool regex_contains(const string &str, const regex &regex) {
-            return std::regex_match(str, regex);
+        void KillProc(int pId) {
+            SignalProc(pId, SIGKILL);
         }
+
 
         bool contains_or(const string &str, vector<string> &patterns) {
             for (auto pattern: patterns) {
@@ -204,7 +178,6 @@ namespace Shell {
             return read_all_f(fd);
         }
 
-
         string read_all_f(FILE *fd) {
             char buf[512];
 
@@ -235,7 +208,6 @@ namespace Shell {
 
             return data;
         }
-
 
         std::string read_line(const std::string &path) {
             string data = read_all(path);
@@ -278,7 +250,7 @@ namespace Shell {
             char d_name[]; /* Filename (null-terminated) */
         };
 
-        // returns true if there is more to read
+        // returns true if there is more to read, must close fd
         void traverse_dir(int fd, std::function<void(string)> cb) {
             constexpr size_t BUF_SIZE = 8192;
             char buf[BUF_SIZE];

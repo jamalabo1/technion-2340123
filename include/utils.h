@@ -26,7 +26,6 @@ namespace Shell {
 
         bool _checkAndRemoveBgCommand(std::string &cmd);
 
-        bool regex_contains(const std::string &str, const std::regex &regex);
 
         bool contains_or(const std::string &str, std::vector<std::string> &patterns);
 

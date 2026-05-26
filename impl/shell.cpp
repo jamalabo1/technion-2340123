@@ -40,8 +40,6 @@ SmallShell &SmallShell::getInstance() // make SmallShell singleton
     return instance;
 }
 
-SmallShell::~SmallShell() {
-}
 
 // per assumptions: • I/O redirection and Pipe commands are correctly formatted.
 unique_ptr<Command> SmallShell::_handleIo(string cmd_s, size_t ioPos) {
@@ -96,10 +94,7 @@ unique_ptr<Command> SmallShell::_handlePipe(std::string cmd_s, size_t pipePos) {
     // we'll ignore isbg at this point
     auto cmds = _lpart(cmd_s, pipePos);
 
-    if (cmds.empty()) {
-        throw std::logic_error("no pipes?");
-    }
-    if (cmds.size() != 2) {
+    if (cmds.empty() || cmds.size() != 2) {
         throw std::logic_error("wrong number of pipes, although per assumptions, io/pipe are correctly formatted");
     }
 
@@ -108,13 +103,12 @@ unique_ptr<Command> SmallShell::_handlePipe(std::string cmd_s, size_t pipePos) {
         throw std::logic_error("no pipes?");
     }
 
+    // create the commands
     unique_ptr<Command> cmd1 = CreateCommand(cmds[0]);
-
-    // it seems this is not symmetric (for aliases)
     unique_ptr<Command> cmd2 = CreateCommand(cmds[1]);
 
     CommandCtx pipeCtx(
-        "pipe",
+        "_pipe",
         wenv,
         Parameters(paramsList),
         CommandCtx::CommandFlags{}, // no flags at this point
@@ -145,10 +139,10 @@ std::string SmallShell::_tokenizeCmd(const char *cmd_line) {
 
     // const bool isBackground = _checkAndRemoveBgCommand(cmd_s);
 
-    //so save myself all the headache, i'll instead match char char, until I hit | > or &
+    // so save myself all the headache, i'll instead match char char, until I hit | > or &
     // then i'll stop, return the pos and what was matched.
     // then tokenize using alias
-    // then add a whitespace to save my self the trouble afterwards? since [w]| or [w]& would'nt matter
+    // then add a whitespace to save my self the trouble afterward. since [w]| or [w]& wouldn't matter
 
 
     pair<string, size_t> cord = _commandWithPos(cmd_s);
@@ -159,28 +153,6 @@ std::string SmallShell::_tokenizeCmd(const char *cmd_line) {
 
     // replace with matched alias with a whitespace.
     cmd_s.replace(0, cord.second, candidate + " ");
-
-
-    // size_t pipePos = cmd_s.find_first_of('|');
-    // size_t ioPos = cmd_s.find_first_of('>');
-    //
-    //
-    // // has pipe or io
-    // if (pipePos != std::string::npos || ioPos != std::string::npos) {
-    //     // then tokenize the immediate predecessor
-    //
-    //     size_t pos = _nonNpos(ioPos, pipePos);
-    //
-    //     // the command is invalid!!!! and we assumed otherwise
-    //     if (pos != 0) {
-    //         string candidate = cmd_s.substr(0, pos);
-    //         candidate = services->aliases->tokenize(candidate);
-    //
-    //         cmd_s.replace(0, pos, candidate);
-    //     }
-    // } else {
-    //
-    // }
 
     return cmd_s;
 }
@@ -197,13 +169,11 @@ unique_ptr<Command> SmallShell::CreateCommand(std::string cmd_s) {
     // so that we don't modify the original
     const bool isBackground = _checkAndRemoveBgCommand(cmd_s);
 
-
     //command creation rejected
     if (cmd_s.empty()) return nullptr;
 
     // extract command
     string command = _command(cmd_s);
-
 
     // ONLY if the command is alias ... then we disable |> parsing since it can appear in the alias.
     if (command != "alias") {
@@ -220,17 +190,14 @@ unique_ptr<Command> SmallShell::CreateCommand(std::string cmd_s) {
         }
     }
 
-    // get params
-    const vector<string> paramsList = _params(cmd_s);
-
-    const auto params = Parameters(
-        paramsList
-    );
 
     CommandCtx ctx(
         command,
         wenv,
-        params,
+        // create params
+        Parameters(
+            _params(cmd_s)
+        ),
         CommandCtx::CommandFlags{
             // this gets flagged bg even for non external commands, BE CAREFUL!!
             .isBackground = isBackground
@@ -300,6 +267,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
             exit(0);
         }
     }
+
     catch (const std::exception &e) {
         // TODO: what do general exception means? (they didnt originate from the app)
         std::cerr << "general error: " << e.what() << std::endl;
@@ -309,7 +277,6 @@ void SmallShell::executeCommand(const char *cmd_line) {
         }
 
         throw e;
-        // std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ":" << e.what() << std::endl;
     }
 }
 

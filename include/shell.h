@@ -44,8 +44,6 @@ public:
 
     static SmallShell& getInstance();
 
-    ~SmallShell();
-
     void executeCommand(const char* cmd_line);
 
     std::string get_terminalName() const { return wenv->getTerminalName(); }
