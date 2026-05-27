@@ -193,9 +193,10 @@ def start_fault_injected_session(smash_executable: Path, tmp_workdir: Path, env:
     return session
 
 
-def assert_prompt_returns(session: SmashSession, marker: str, start: int) -> None:
+def assert_prompt_returns(session: SmashSession, prompt: str, start: int) -> None:
+    marker = f"{prompt}> "
     assert wait_for_condition(lambda: marker in session.stdout[start:], timeout=5.0), (
-        f"shell did not recover and print {marker!r}\n"
+        f"shell did not recover and print prompt {marker!r}\n"
         f"stdout:\n{session.stdout}\n"
         f"stderr:\n{session.stderr}"
     )
@@ -214,9 +215,9 @@ def test_mocked_open_failure_reports_error_and_next_redirection_recovers(
     arm("open", errno.EACCES)
     session.send_line("pwd > denied_once.txt")
     session.send_line("pwd > recovered.txt")
-    session.send_line("/bin/echo __open_recovered__")
+    session.send_line("chprompt open_recovered")
 
-    assert_prompt_returns(session, "__open_recovered__", start)
+    assert_prompt_returns(session, "open_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
@@ -242,9 +243,9 @@ def test_mocked_dup_failure_closes_open_file_and_recovers_stdout(
     session.send_line("pwd > dup_failed.txt")
     session.send_line("/bin/echo stdout-recovered")
     session.send_line("pwd > dup_recovered.txt")
-    session.send_line("/bin/echo __dup_recovered__")
+    session.send_line("chprompt dup_recovered")
 
-    assert_prompt_returns(session, "__dup_recovered__", start)
+    assert_prompt_returns(session, "dup_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
@@ -272,9 +273,9 @@ def test_mocked_dup2_failure_restores_stdout_and_recovers_next_command(
     session.send_line("pwd > dup2_failed.txt")
     session.send_line("/bin/echo stdout-after-dup2")
     session.send_line("pwd > dup2_recovered.txt")
-    session.send_line("/bin/echo __dup2_recovered__")
+    session.send_line("chprompt dup2_recovered")
 
-    assert_prompt_returns(session, "__dup2_recovered__", start)
+    assert_prompt_returns(session, "dup2_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
@@ -301,9 +302,9 @@ def test_mocked_pipe_failure_reports_error_and_next_pipe_recovers(
     arm("pipe", errno.EMFILE)
     session.send_line("/bin/echo lost | /bin/cat")
     session.send_line("/bin/echo pipe-ok | /bin/cat")
-    session.send_line("/bin/echo __pipe_recovered__")
+    session.send_line("chprompt pipe_recovered")
 
-    assert_prompt_returns(session, "__pipe_recovered__", start)
+    assert_prompt_returns(session, "pipe_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
@@ -328,9 +329,9 @@ def test_mocked_external_fork_failure_reports_error_and_next_external_recovers(
     arm("fork", errno.EAGAIN)
     session.send_line("/bin/echo lost-fork")
     session.send_line("/bin/echo fork-ok")
-    session.send_line("/bin/echo __fork_recovered__")
+    session.send_line("chprompt fork_recovered")
 
-    assert_prompt_returns(session, "__fork_recovered__", start)
+    assert_prompt_returns(session, "fork_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
@@ -355,9 +356,9 @@ def test_mocked_pipe_first_fork_failure_closes_pipe_fds_and_recovers(
     arm("fork", errno.EAGAIN)
     session.send_line("/bin/echo lost-pipe-fork | /bin/cat")
     session.send_line("/bin/echo pipe-fork-ok | /bin/cat")
-    session.send_line("/bin/echo __pipe_fork_recovered__")
+    session.send_line("chprompt pipe_fork_recovered")
 
-    assert_prompt_returns(session, "__pipe_fork_recovered__", start)
+    assert_prompt_returns(session, "pipe_fork_recovered", start)
     after = open_fd_count(session.pid)
     session.send_line("quit")
     result = session.finish(timeout=3.0)
