@@ -6,7 +6,9 @@
 #include <sys/wait.h>
 
 #include "exceptions.h"
+#include "fd.h"
 #include "pipe.h"
+#include "scoped_dup2.h"
 
 using std::unique_ptr;
 
@@ -44,10 +46,9 @@ void PipeCommand::execute() {
         // primitive but effective.
         int wireChannel = (params()->firstOrDefault() == "&") ? STDERR_FILENO : STDOUT_FILENO;
 
-        // and to make sure it's writing as default, we need to replace stdout/err
-        DUP2(fd[1], wireChannel);
+        // this way we ensure whatever happens we try to restore
+        ScopedDup2 scopedPipeWrite(fd[1], wireChannel);
 
-        // then close
         CLOSE(fd[1]);
 
         // execute as regular. (we don't mind if it waits for  execv's or not, we have our own child wrapper)
@@ -65,8 +66,8 @@ void PipeCommand::execute() {
         // child2 does not writes to the pipe so
         CLOSE(fd[1]);
 
-        // and we want to wire the pipe instead of stdin
-        DUP2(fd[0], STDIN_FILENO);
+        // this way we ensure whatever happens we try to restore
+        ScopedDup2 scopedPipeWrite(fd[0], STDIN_FILENO);
 
         //then close the pipe original place
         CLOSE(fd[0]);

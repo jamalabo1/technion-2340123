@@ -4,8 +4,9 @@
 
 #ifndef SCOPED_DUP_H
 #define SCOPED_DUP_H
+#include "scoped.h"
 
-class ScopedDup {
+class ScopedDup : public Scoped {
 private:
     int original_fd;
     int current_fd;

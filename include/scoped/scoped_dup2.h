@@ -4,9 +4,10 @@
 
 #ifndef SCOPED_DUP2_H
 #define SCOPED_DUP2_H
+#include "scoped.h"
 
-// same with fd but redirected
-class ScopedDup2 {
+// same with fd but dup2
+class ScopedDup2 : public Scoped {
 private:
     int from;
 

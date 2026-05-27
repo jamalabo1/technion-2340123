@@ -7,9 +7,10 @@
 
 #include "exceptions.h"
 
-ScopedFd::ScopedFd(int fd) : fd(fd) {
+ScopedFd::ScopedFd(int fd) : Scoped(), fd(fd) {
 }
 
 ScopedFd::~ScopedFd() {
-    close(fd) == -1;
+    // close
+    close(fd);
 }

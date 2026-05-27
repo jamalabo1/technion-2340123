@@ -6,7 +6,7 @@
 #include "exceptions.h"
 #include "scoped_dup.h"
 
-ScopedDup::ScopedDup(int fd) : original_fd(fd) {
+ScopedDup::ScopedDup(int fd) : Scoped(), original_fd(fd) {
     current_fd = dup(fd);
     if (current_fd == -1) {
         throw SyscallException("dup");
