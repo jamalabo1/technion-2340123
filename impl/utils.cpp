@@ -55,7 +55,7 @@ namespace Shell {
             return {elm1, elm2};
         }
 
-        vector<string> _split(const string &param, const string &delim) {
+        vector<string> _split(const string &param, const string &delim, bool normalize) {
             regex regexz(delim);
             vector<string> list(
                 sregex_token_iterator(
@@ -64,16 +64,20 @@ namespace Shell {
                 ),
                 sregex_token_iterator()
             );
+            if (normalize) {
+                vector<string> result;
 
-            vector<string> result;
-            // normalize and filter
-            for (auto &basic_string: list) {
-                basic_string = _trim(basic_string);
-                if (!basic_string.empty()) {
-                    result.push_back(basic_string);
+                // normalize and filter
+                for (auto &basic_string: list) {
+                    basic_string = _trim(basic_string);
+                    if (!basic_string.empty()) {
+                        result.push_back(basic_string);
+                    }
                 }
+                return result;
+            } else {
+                return list;
             }
-            return result;
         }
 
         // must be called after trim
@@ -96,12 +100,12 @@ namespace Shell {
         }
 
 
-
         bool _isWhitespaceChar(char c) {
             return
                     c == '\n' || c == '\r' || c == '\t' ||
                     c == '\f' || c == '\v' || c == ' ';
         }
+
         bool _isSplitChar(char c) {
             return c == '|' || c == '>' || c == '&' || _isWhitespaceChar(c);
         }
@@ -120,7 +124,7 @@ namespace Shell {
             return {cmd_line, cmd_line.size()};
         }
 
-        vector<string> _splitByCommandLogic(const string& cmd_line) {
+        vector<string> _splitByCommandLogic(const string &cmd_line) {
             vector<string> parts;
 
             size_t start = 0;

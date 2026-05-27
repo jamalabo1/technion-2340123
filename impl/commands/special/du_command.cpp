@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "fd.h"
+
 using namespace std;
 
 REGISTER_COMMAND(DiskUsageCommand);
@@ -41,6 +43,9 @@ void DiskUsageCommand::execute() {
         int fd = open(dir.c_str(), O_RDONLY);
         if (fd == -1) throw SyscallException("open");
 
+        // scoped fd for throws.
+        ScopedFd scopedFd(fd);
+
         // honoring the intent of this function (stackoverflow -  25035691) although it does not matter since we don't continue errored commands
         q.pop();
 
@@ -49,8 +54,6 @@ void DiskUsageCommand::execute() {
             if (name != "..") {
                 struct stat st{};
                 if (fstatat(fd, name.c_str(), &st, AT_SYMLINK_NOFOLLOW) == -1) {
-                    // close and report
-                    close(fd);
                     // maybe permission/deleted file/etc.
                     throw SyscallException("fstatat");
                 }
@@ -68,7 +71,6 @@ void DiskUsageCommand::execute() {
         });
 
         // start iterating the next directory
-        close(fd);
     }
 
     // total size is in bytes, and we want to convert it to kb so
