@@ -10,7 +10,7 @@ bool Aliases::containsAlias(const std::string &alias) {
     return aliases.find(alias) != aliases.end();
 }
 
-Aliases::Aliases() {
+Aliases::Aliases() : counter(0) {
     // factory_ = CommandFactory::getInstance();
 }
 
