@@ -93,12 +93,11 @@ shared_ptr<JobEntry> JobTable::get_jobById(int jobId) const
 
 void JobTable::killAndRemoveAllJobs()
 {
-    std::cout << "sending SIGKILL signal to " << _jobs.size() << " jobs:" << std::endl;
-
-    //TODO: check interpretation
-
     // first make sure it's not stale
     removeFinishedJobs();
+
+
+    std::cout << "sending SIGKILL signal to " << _jobs.size() << " jobs:" << std::endl;
 
     _jobs.inorder([](const shared_ptr<JobEntry>& job)
     {

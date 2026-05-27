@@ -20,7 +20,7 @@ namespace Shell {
         std::vector<std::string> _lsplit(const std::string &param, const std::string &delim);
         std::vector<std::string> _lpart(const std::string &param, const size_t &pos);
 
-        std::vector<std::string> _split(const std::string &param, const std::string &delim = " ");
+        std::vector<std::string> _split(const std::string &param, const std::string &delim = WHITESPACE);
 
         int _parseCommandLine(const char *cmd_line, char **args);
 

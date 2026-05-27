@@ -1,0 +1,10 @@
+[
+  {
+    "input": [
+      "echo param1\tparam2"
+    ],
+    "output": [
+      "param1 param2"
+    ]
+  }
+]

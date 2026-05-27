@@ -208,7 +208,8 @@ unique_ptr<Command> SmallShell::CreateCommand(std::string cmd_s)
         wenv,
         // create params
         Parameters(
-            _params(cmd_s)
+            _params(cmd_s),
+            cmd_s
         ),
         CommandCtx::CommandFlags{
             // this gets flagged bg even for non external commands, BE CAREFUL!!

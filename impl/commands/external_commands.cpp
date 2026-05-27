@@ -23,7 +23,9 @@ void ExternalCommand::execute() {
 
     static vector<string> pat = {"*", "?"};
 
-    bool isComplex = Shell::Utils::contains_or(concated, pat);
+    auto cmdId = ctx.get_cmdId();
+
+    bool isComplex = Shell::Utils::contains_or(p->get_raw(), pat);
 
     const int pid = services->children->fork();
 
@@ -48,9 +50,6 @@ void ExternalCommand::execute() {
         if (isComplex) {
             // if complex then we are going to run the same command.
             // just pass everything to bash
-
-            // this is created
-            auto cmdId = ctx.get_cmdId();
 
             string cmdParams = p->concat();
             string bashCmd = cmdId + " " + cmdParams;
@@ -85,7 +84,6 @@ void ExternalCommand::execute() {
             argv.reserve(args.size() + 2);
 
             // the requested command
-            auto cmdId = ctx.get_cmdId();
             auto cmdId_c = const_cast<char *>(cmdId.c_str());
 
             argv.push_back(cmdId_c);
@@ -107,4 +105,8 @@ void ExternalCommand::execute() {
         // if failed
         throw SyscallException("execvp");
     }
+}
+
+bool ExternalCommand::is_external() {
+    return true;
 }

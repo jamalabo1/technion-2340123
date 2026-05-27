@@ -18,7 +18,11 @@ public:
 
 void AliasCommand::prepare()
 {
-    auto param = params()->concat();
+    // auto param = params()->concat();
+    // ensure there is raw.
+    auto param = params()->get_raw_param();
+    // and in this case we can _trim
+    param = Shell::Utils::_trim(param);
 
     // no param
     if (param.empty())
@@ -46,6 +50,7 @@ void AliasCommand::execute()
 {
     auto& aliasService = services->aliases;
 
+    //TODO:must be original
     if (listAll)
     {
         const auto& aliases = aliasService->mapList();

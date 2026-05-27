@@ -10,13 +10,12 @@
 class ExternalCommand : public Command
 {
 public:
-    ExternalCommand(CommandCtx& ctx);
+    explicit ExternalCommand(CommandCtx& ctx);
 
-    virtual ~ExternalCommand()
-    {
-    }
 
     void execute() override;
+
+    bool is_external() override;
 };
 
 #endif //EXTERNAL_H

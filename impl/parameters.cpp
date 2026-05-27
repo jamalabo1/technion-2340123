@@ -3,14 +3,19 @@
 //
 #include "parameters.h"
 
+#include "utils.h"
+
 using namespace std;
 
 // init static default
 string Parameters::DEFAULT_VALUE;
 
 
-Parameters::Parameters(const vector<string>& params)
-    : params(params)
+Parameters::Parameters(
+    const vector<string>& params,
+    const string& raw
+    )
+    : params(params),raw(raw), hasRaw(!raw.empty())
 {
 }
 
@@ -44,3 +49,19 @@ string Parameters::concat() const
 
     return concatenated;
 }
+
+std::string Parameters::get_raw() const {
+    return raw;
+}
+
+std::string Parameters::get_raw_param() const {
+    auto p =Shell::Utils::_commandWithPos(get_raw());
+
+    // this is where I think the command is.
+    size_t pos =  p.second;
+    //so what after pos, is the thing i want to take out
+
+    return raw.substr(pos);
+}
+
+

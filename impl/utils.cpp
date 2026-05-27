@@ -91,7 +91,19 @@ namespace Shell {
         }
 
         string _command(const string &cmd_line) {
-            return cmd_line.substr(0, cmd_line.find_first_of(WHITESPACE));
+            // to allow for all whitespace types.
+            return _commandWithPos(cmd_line).first;
+        }
+
+
+
+        bool _isWhitespaceChar(char c) {
+            return
+                    c == '\n' || c == '\r' || c == '\t' ||
+                    c == '\f' || c == '\v' || c == ' ';
+        }
+        bool _isSplitChar(char c) {
+            return c == '|' || c == '>' || c == '&' || _isWhitespaceChar(c);
         }
 
         pair<string, size_t> _commandWithPos(const string &cmd_line) {
@@ -100,15 +112,38 @@ namespace Shell {
 
                 //\n\r\t\f\v
                 // if special char then stop, it seems this is exactly std::isspace but keeping it for clarity
-                if (c == '|' || c == '>' || c == '&' ||
-                    c == '\n' || c == '\r' || c == '\t' ||
-                    c == '\f' || c == '\v' || c == ' '
-                ) {
+                if (_isSplitChar(c)) {
                     return {cmd_line.substr(0, i), i};
                 }
             }
             // otherwise the whole string
             return {cmd_line, cmd_line.size()};
+        }
+
+        vector<string> _splitByCommandLogic(const string& cmd_line) {
+            vector<string> parts;
+
+            size_t start = 0;
+            while (start < cmd_line.size()) {
+                // skip separators
+                while (start < cmd_line.size() && _isWhitespaceChar(cmd_line[start])) {
+                    start++;
+                }
+
+                if (start == cmd_line.size()) {
+                    break;
+                }
+
+                size_t end = start;
+                while (end < cmd_line.size() && !_isWhitespaceChar(cmd_line[end])) {
+                    end++;
+                }
+
+                parts.push_back(cmd_line.substr(start, end - start));
+                start = end;
+            }
+
+            return parts;
         }
 
         vector<string> _params(const string &trimmed) {
@@ -121,7 +156,8 @@ namespace Shell {
                 // No arguments, only command
                 paramsRaw = "";
             }
-            return _split(paramsRaw);
+
+            return _splitByCommandLogic(paramsRaw);
         }
 
         void SignalProc(int pId, int sigNum) {

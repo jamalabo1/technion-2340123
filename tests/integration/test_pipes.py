@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .smash_harness import assert_stderr_contains, assert_stderr_empty, create_executable_script
+from .smash_harness import assert_stderr_contains, assert_stderr_empty, create_executable_script, parse_pid_from_showpid
 
 
 def test_stdout_pipe_external_to_external(run):
@@ -101,3 +101,17 @@ def test_pipe_exec_failure_stays_on_stderr(run):
     result.assert_exit_ok()
     assert_stderr_contains(result, "smash error: execvp failed")
     assert "execvp failed" not in result.stdout
+
+def test_pipeline_runs_builtin_on_parent(smash_session, tmp_workdir: Path):
+    # Requirement: built-ins execute in smash, ignore &, and must not be inserted
+    # into the jobs list.
+    session = smash_session(cwd=tmp_workdir)
+    session.read_until_prompt()
+    session.send_line("showpid | cat")
+    session.read_until_prompt()
+    session.send_line("quit")
+    result = session.finish()
+
+    result.assert_exit_ok()
+    assert parse_pid_from_showpid(result.stdout) == session.pid
+    assert result.stderr == ""
