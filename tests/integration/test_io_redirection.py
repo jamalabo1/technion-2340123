@@ -3,7 +3,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .smash_harness import assert_stderr_contains, assert_stderr_empty, create_executable_script, parse_jobs
+from .smash_harness import (
+    assert_stderr_contains,
+    assert_stderr_empty,
+    open_fd_count,
+    parse_jobs,
+    wait_for_condition,
+)
 
 
 def test_redirect_overwrites_appends_and_supports_spacing_variants(run, tmp_workdir: Path):
@@ -67,3 +73,76 @@ def test_redirect_open_failure_uses_perror_and_stdout_is_restored(run, tmp_workd
     result.assert_exit_ok()
     assert_stderr_contains(result, "smash error: open failed")
     assert result.stdout_lines() == ["after"]
+
+
+def test_redirect_repeated_builtins_do_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for index in range(40):
+        session.send_line(f"pwd > leak_{index}.txt")
+    session.send_line("/bin/echo __redir_fd_done__")
+
+    assert wait_for_condition(lambda: "__redir_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert (tmp_workdir / "leak_39.txt").read_text().strip() == str(tmp_workdir)
+
+
+def test_redirect_repeated_external_append_does_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for index in range(30):
+        session.send_line(f"/bin/echo append-{index} >> append_leak.txt")
+    session.send_line("/bin/echo __append_fd_done__")
+
+    assert wait_for_condition(lambda: "__append_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert (tmp_workdir / "append_leak.txt").read_text().splitlines() == [
+        f"append-{index}" for index in range(30)
+    ]
+
+
+def test_redirect_open_failures_do_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for index in range(20):
+        session.send_line(f"/bin/echo lost > missing_dir/out_{index}.txt")
+    session.send_line("/bin/echo __redirect_failure_fd_done__")
+
+    assert wait_for_condition(lambda: "__redirect_failure_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert "lost" not in result.stdout
+    assert result.stdout.count("__redirect_failure_fd_done__") == 1
+    assert result.stderr.count("smash error: open failed") >= 20

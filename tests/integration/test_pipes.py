@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .smash_harness import assert_stderr_contains, assert_stderr_empty, create_executable_script, parse_pid_from_showpid
+from .smash_harness import (
+    assert_stderr_contains,
+    assert_stderr_empty,
+    create_executable_script,
+    open_fd_count,
+    wait_for_condition,
+)
 
 
 def test_stdout_pipe_external_to_external(run):
@@ -101,4 +107,79 @@ def test_pipe_exec_failure_stays_on_stderr(run):
     result.assert_exit_ok()
     assert_stderr_contains(result, "smash error: execvp failed")
     assert "execvp failed" not in result.stdout
+
+
+def test_pipe_repeated_commands_do_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    stderr_writer = create_executable_script(
+        tmp_workdir / "stderr_writer.sh",
+        "#!/bin/sh\necho pipe-stderr >&2\n",
+    )
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for index in range(20):
+        session.send_line(f"/bin/echo pipe-{index} | /bin/cat")
+        session.send_line(f"{stderr_writer} |& /bin/cat")
+    session.send_line("/bin/echo __pipe_fd_done__")
+
+    assert wait_for_condition(lambda: "__pipe_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert "pipe-19" in result.stdout
+    assert "pipe-stderr" in result.stdout
+
+
+def test_pipe_recursive_chains_do_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for index in range(15):
+        session.send_line(f"/bin/echo nested-{index} | /bin/cat | /bin/cat")
+    session.send_line("/bin/echo __nested_pipe_fd_done__")
+
+    assert wait_for_condition(lambda: "__nested_pipe_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert "nested-14" in result.stdout
+
+
+def test_pipe_exec_failures_do_not_leak_shell_fds(smash_session, tmp_workdir: Path):
+    session = smash_session(cwd=tmp_workdir)
+    assert wait_for_condition(lambda: session.stdout.endswith("smash> "), timeout=2.0)
+
+    baseline = open_fd_count(session.pid)
+    assert baseline > 0
+
+    start = len(session.stdout)
+    for _ in range(12):
+        session.send_line("definitely_missing_smash_pipe_cmd | /bin/cat")
+    session.send_line("/bin/echo __pipe_failure_fd_done__")
+
+    assert wait_for_condition(lambda: "__pipe_failure_fd_done__" in session.stdout[start:], timeout=5.0)
+    after = open_fd_count(session.pid)
+
+    session.send_line("quit")
+    result = session.finish(timeout=3.0)
+    result.assert_exit_ok()
+
+    assert after <= baseline + 3
+    assert result.stderr.count("smash error: execvp failed") >= 12
 

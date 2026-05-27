@@ -318,6 +318,10 @@ def pid_exists(pid: int) -> bool:
         return True
 
 
+def open_fd_count(pid: int) -> int:
+    return sum(1 for _ in Path(f"/proc/{pid}/fd").iterdir())
+
+
 def process_cmdline(pid: int) -> str:
     try:
         data = Path(f"/proc/{pid}/cmdline").read_bytes()
