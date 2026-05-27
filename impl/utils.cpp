@@ -226,9 +226,9 @@ namespace Shell {
             static constexpr int SIZE = sizeof(buf);
 
             while (true) {
-                int bytes = fread(buf, sizeof(char), SIZE, fd);
+                size_t bytes = fread(buf, sizeof(char), SIZE, fd);
                 // read failed
-                if (bytes == -1) {
+                if (ferror(fd)) {
                     //close and report
                     fclose(fd);
                     throw SyscallException("read");

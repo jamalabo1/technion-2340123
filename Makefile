@@ -2,7 +2,7 @@
 include .env
 COMPILER := g++
 COMPILER_FLAGS := --std=c++11 -Wall -Iinclude
-SRCS := $(filter-out test_err.cpp,$(wildcard *.cpp))
+SRCS := $(wildcard *.cpp)
 OBJS := $(subst .cpp,.o,$(SRCS))
 HDRS := $(wildcard *.h)
 

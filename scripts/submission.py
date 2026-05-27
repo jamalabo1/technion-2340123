@@ -19,6 +19,10 @@ FILES = [
     ROOT / "submitters.txt"
 ]
 
+EXCLUDE = [
+    ROOT / "test_err.cpp"
+]
+
 
 def makefile_with_inlined_env() -> str:
     makefile = ROOT / "Makefile"
@@ -54,6 +58,9 @@ def main() -> None:
             old.unlink()
 
     for src in FILES:
+        if src in EXCLUDE:
+            print(f"excluded {src}")
+            continue
         dst_name = src.name
         shutil.copy2(src, OUT / dst_name)
 

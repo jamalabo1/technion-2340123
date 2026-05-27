@@ -44,12 +44,11 @@ void FileWrapperProxy::execute() {
     // if successful make it scoped
     ScopedFd scopedFd(fd);
 
-    // duplicate the stdout
-    ScopedDup scopedDup(STDOUT_FILENO);
+    // this guards the stdout by duplicating it into a temp fd, then dup2's fd into stdout and on finsh recovers.
+    ScopedGuardedDup2 scopedDup2(fd, STDOUT_FILENO);
 
-    // // move the file into stdout so that we write into it instead
-    ScopedDup2 scopedDup2(fd, STDOUT_FILENO);
-    // and at this point the fd arrow is not required because it's in the stdout so make it out of scope.
+    // keping the old scopeddup + scoepddup2 actually is bad because it dup's the stdout
+    // into fd, which now means we have to arrows into the stdout
 
     // any exception already makes the scoped out of scope so we are good
     cmd->run();

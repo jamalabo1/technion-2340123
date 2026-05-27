@@ -5,18 +5,18 @@
 #ifndef SCOPED_DUP2_H
 #define SCOPED_DUP2_H
 #include "scoped.h"
+#include "scoped_dup.h"
 
 // same with fd but dup2
-class ScopedDup2 : public Scoped {
+class ScopedGuardedDup2 : public Scoped {
 private:
-    int from;
+    ScopedDup guarded;
 
+    int from;
     int to;
 
 public:
-    ScopedDup2(int from, int to);
-
-    ~ScopedDup2();
+    ScopedGuardedDup2(int from, int to);
 };
 
 #endif //SCOPED_DUP2_H

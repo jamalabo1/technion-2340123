@@ -47,7 +47,7 @@ void PipeCommand::execute() {
         int wireChannel = (params()->firstOrDefault() == "&") ? STDERR_FILENO : STDOUT_FILENO;
 
         // this way we ensure whatever happens we try to restore
-        ScopedDup2 scopedPipeWrite(fd[1], wireChannel);
+        DUP2(fd[1], wireChannel);
 
         CLOSE(fd[1]);
 
@@ -67,7 +67,7 @@ void PipeCommand::execute() {
         CLOSE(fd[1]);
 
         // this way we ensure whatever happens we try to restore
-        ScopedDup2 scopedPipeWrite(fd[0], STDIN_FILENO);
+        DUP2(fd[0], STDIN_FILENO);
 
         //then close the pipe original place
         CLOSE(fd[0]);

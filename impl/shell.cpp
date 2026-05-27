@@ -45,6 +45,7 @@ SmallShell& SmallShell::getInstance() // make SmallShell singleton
 // per assumptions: • I/O redirection and Pipe commands are correctly formatted.
 unique_ptr<Command> SmallShell::_handleIo(string cmd_s, size_t ioPos)
 {
+    // this works on >> because _split normalizes, so cmd1 >> file => ["cmd", "", "file"] is turned into ["cmd", "file"]
     auto cmds = _split(cmd_s, ">");
     if (cmds.size() != 2)
     {
