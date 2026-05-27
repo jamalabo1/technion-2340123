@@ -48,6 +48,9 @@ add_library(skeleton_smash_lib
         include/commands/special.h
         impl/commands/special/du_command.cpp
         impl/command_factory.cpp
+        impl/scoped/fd.cpp
+        impl/scoped/dup2.cpp
+        impl/scoped/dup.cpp
 
 
 )
@@ -58,6 +61,7 @@ target_include_directories(skeleton_smash_lib
         include/commands
         include/ds
         include/services
+        include/scoped
 )
 
 add_executable(skeleton_smash
