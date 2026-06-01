@@ -62,7 +62,7 @@ private:
     void m_inorder(std::shared_ptr<AvlNode> node, inorder_callback_type cb);
 
     // augmented max id
-    TKey maxKey;
+    TKey maxKey{}; // init with default value
     std::shared_ptr<TValue> maxValue;
 
     std::pair<TKey, std::shared_ptr<TValue> > m_findMax(std::shared_ptr<AvlNode> node) const;
