@@ -18,15 +18,17 @@ using namespace std;
 
 REGISTER_COMMAND(DiskUsageCommand);
 
-
-void DiskUsageCommand::execute() {
-    auto dir = params()->singleOrDefault<CommandTooManyArguments>();
+// must do these on prepare so that invalid arg error run on the parent
+void DiskUsageCommand::prepare() {
+    dir = params()->singleOrDefault<CommandTooManyArguments>();
 
     if (dir.empty()) {
         // why not set this at the default value? because it's not lazy evaluation, and syscalls are costly
         dir = Shell::Utils::get_current_cwd();
     }
+}
 
+void DiskUsageCommand::execute() {
     long totalBytes = 0;
 
     queue<string> q;
@@ -47,7 +49,7 @@ void DiskUsageCommand::execute() {
         // honoring the intent of this function (stackoverflow -  25035691) although it does not matter since we don't continue errored commands
         q.pop();
 
-        Shell::Utils::traverse_dir(fd, [&fd, &q, &totalBytes, &dir](const string &name) {
+        Shell::Utils::traverse_dir(fd, [&fd, &q, &totalBytes, this](const string &name) {
             // if not this or cd .. then:
             if (name != "..") {
                 struct stat st{};

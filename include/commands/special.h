@@ -8,15 +8,26 @@
 #include "command.h"
 
 
-class SpecialCommand : public Command
-{
+class SpecialCommand : public Command {
 public:
-    SpecialCommand(CommandCtx&);
+    SpecialCommand(CommandCtx &);
 
     void run() override;
 };
 
-DEFINE_COMMAND("du", DiskUsageCommand, SpecialCommand);
+// du proc command
+class DiskUsageCommand : public SpecialCommand {
+    DEFAULT_COMMAND_HELPER("du", DiskUsageCommand, SpecialCommand)
+
+private:
+    std::string dir;
+
+public:
+    void execute() override;
+
+    void prepare() override;
+};
+
 
 DEFINE_COMMAND("whoami", WhoAmICommand, SpecialCommand);
 

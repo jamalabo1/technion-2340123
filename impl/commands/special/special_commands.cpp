@@ -36,7 +36,7 @@ void SpecialCommand::run() {
         // execute
         execute();
 
-        // after execute i can exit from here our give to the parent, but i'll exit either way
+        // after execute i can exit from here or give to the parent, but i'll exit either way
         exit(0);
     } else {
         // save proc
