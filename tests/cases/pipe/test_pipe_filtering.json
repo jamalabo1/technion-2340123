@@ -1,0 +1,22 @@
+[
+  {
+    "name": "pipe_delivers_stdin",
+    "description": "The left command's stdout becomes the right command's stdin.",
+    "input": [
+      "/bin/echo keep_me | /bin/grep keep_me"
+    ],
+    "output": [
+      "keep_me"
+    ],
+    "stderr": []
+  },
+  {
+    "name": "pipe_grep_filters_to_empty",
+    "description": "A non-matching grep consumes the piped input and produces no stdout, and smash still exits cleanly.",
+    "input": [
+      "/bin/echo abc | /bin/grep zzz"
+    ],
+    "output": [],
+    "stderr": []
+  }
+]

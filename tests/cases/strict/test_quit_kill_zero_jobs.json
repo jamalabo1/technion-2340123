@@ -1,0 +1,10 @@
+{
+  "description": "quit kill with no background jobs must still print the zero-jobs header line and exit cleanly.",
+  "input": [
+    "quit kill"
+  ],
+  "output": [
+    "smash: sending SIGKILL signal to 0 jobs:"
+  ],
+  "stderr": []
+}

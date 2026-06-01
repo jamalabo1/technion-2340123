@@ -1,0 +1,13 @@
+{
+  "description": "An alias expanding to a backgrounded external is listed by the original user input, not by its expansion.",
+  "input": [
+    "alias slp='sleep 1'",
+    "slp &",
+    "jobs",
+    "quit"
+  ],
+  "output": [
+    "[1] slp &"
+  ],
+  "stderr": []
+}

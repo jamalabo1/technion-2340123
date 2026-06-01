@@ -1,0 +1,18 @@
+{
+  "description": "alias rejects reserved keywords and duplicate names while accepting valid underscore/digit names; the first definition wins.",
+  "input": [
+    "alias jobs='/bin/echo nope'",
+    "alias good_1='/bin/echo hello'",
+    "good_1",
+    "alias good_1='/bin/echo world'",
+    "alias"
+  ],
+  "output": [
+    "hello",
+    "good_1='/bin/echo hello'"
+  ],
+  "stderr": [
+    "smash error: alias: jobs already exists or is a reserved command",
+    "smash error: alias: good_1 already exists or is a reserved command"
+  ]
+}

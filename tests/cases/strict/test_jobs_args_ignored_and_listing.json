@@ -1,0 +1,29 @@
+[
+  {
+    "name": "jobs_args_ignored_when_empty",
+    "description": "jobs ignores extra arguments and prints nothing when the list is empty.",
+    "input": [
+      "jobs extra ignored args",
+      "/bin/echo after_empty_jobs"
+    ],
+    "output": [
+      "after_empty_jobs"
+    ],
+    "stderr": []
+  },
+  {
+    "name": "jobs_lists_live_jobs_in_id_order",
+    "description": "jobs lists live background jobs sorted by id, ignoring its own arguments.",
+    "input": [
+      "sleep 1 &",
+      "sleep 1 &",
+      "jobs ignored",
+      "quit"
+    ],
+    "output": [
+      "[1] sleep 1 &",
+      "[2] sleep 1 &"
+    ],
+    "stderr": []
+  }
+]

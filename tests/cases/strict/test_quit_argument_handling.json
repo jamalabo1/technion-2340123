@@ -1,0 +1,11 @@
+{
+  "description": "quit ignores non-kill arguments and exits cleanly with status 0.",
+  "input": [
+    "/bin/echo before_quit",
+    "quit not_kill extra"
+  ],
+  "output": [
+    "before_quit"
+  ],
+  "stderr": []
+}

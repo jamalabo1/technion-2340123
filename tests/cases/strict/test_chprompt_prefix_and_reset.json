@@ -1,0 +1,15 @@
+{
+  "description": "chprompt changes the prompt but never the 'smash' prefix in error messages; extra args use only the first and resetting is silent.",
+  "input": [
+    "chprompt zzz",
+    "cd a b",
+    "chprompt one two three",
+    "fg",
+    "chprompt"
+  ],
+  "output": [],
+  "stderr": [
+    "smash error: cd: too many arguments",
+    "smash error: fg: jobs list is empty"
+  ]
+}

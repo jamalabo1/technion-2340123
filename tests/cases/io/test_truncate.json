@@ -1,0 +1,14 @@
+{
+  "description": "Output redirection with > truncates the file so only the most recent write remains.",
+  "input": [
+    "/bin/rm -f /tmp/smash_case_trunc.txt",
+    "/bin/echo alpha > /tmp/smash_case_trunc.txt",
+    "/bin/echo beta > /tmp/smash_case_trunc.txt",
+    "/bin/cat /tmp/smash_case_trunc.txt",
+    "/bin/rm -f /tmp/smash_case_trunc.txt"
+  ],
+  "output": [
+    "beta"
+  ],
+  "stderr": []
+}

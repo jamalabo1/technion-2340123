@@ -1,0 +1,14 @@
+{
+  "description": "unsetenv reports not-enough-arguments and stops at the first non-existent variable, naming it exactly.",
+  "input": [
+    "unsetenv",
+    "unsetenv NOPE_DOES_NOT_EXIST_X",
+    "unsetenv NOPE_DOES_NOT_EXIST_X ALSO_MISSING_Y"
+  ],
+  "output": [],
+  "stderr": [
+    "smash error: unsetenv: not enough arguments",
+    "smash error: unsetenv: NOPE_DOES_NOT_EXIST_X does not exist",
+    "smash error: unsetenv: NOPE_DOES_NOT_EXIST_X does not exist"
+  ]
+}
