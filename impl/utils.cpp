@@ -312,7 +312,7 @@ namespace Shell {
                     // we finished this directory
                     break;
 
-                for (size_t bpos = 0; bpos < dents;) {
+                for (long bpos = 0; bpos < dents;) {
                     auto *d = reinterpret_cast<linux_dirent64 *>(buf + bpos);
 
                     cb(d->d_name);
