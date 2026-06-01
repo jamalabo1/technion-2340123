@@ -17,7 +17,6 @@ REGISTER_COMMAND(UnSetEnvCommand);
 
 void UnSetEnvCommand::execute()
 {
-    //TODO: do I have to make sync with /proc/ and __environ?
     auto pList = params()->list();
     if (pList.empty())
     {

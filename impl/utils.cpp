@@ -200,6 +200,9 @@ namespace Shell {
                 // child exited
                 return 0;
             } else {
+                if (errno == EINTR) {
+                    // if was interrupted
+                }
                 //TODO: check if actually error
                 throw SyscallException("waitpid");
                 // not relevant for tracking up to this point

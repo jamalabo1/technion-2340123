@@ -39,8 +39,6 @@ void JobTable::addJob(
 
 void JobTable::printJobsList()
 {
-    //TODO: check interpretation
-
     // first make sure it's not stale
     removeFinishedJobs();
 
@@ -95,7 +93,6 @@ void JobTable::killAndRemoveAllJobs()
 {
     // first make sure it's not stale
     removeFinishedJobs();
-
 
     std::cout << "sending SIGKILL signal to " << _jobs.size() << " jobs:" << std::endl;
 

@@ -20,8 +20,6 @@ REGISTER_COMMAND(DiskUsageCommand);
 
 
 void DiskUsageCommand::execute() {
-    //TODO: must be able to run on bg
-
     auto dir = params()->singleOrDefault<CommandTooManyArguments>();
 
     if (dir.empty()) {

@@ -44,9 +44,6 @@ void ExternalCommand::execute() {
             proc_mng->setAndWaitFgProc(proc);
         }
     } else {
-        //TODO: close the stdout of the child so that no intertwined outputs occur.
-        //TODO: do I copy the child's created envs?
-        //TODO: do I expand env vars when calling processes?
         if (isComplex) {
             // if complex then we are going to run the same command.
             // just pass everything to bash

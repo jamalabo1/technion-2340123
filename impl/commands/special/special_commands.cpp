@@ -132,14 +132,17 @@ void USBInfoCommand::execute() {
 
         string devNum = Shell::Utils::read_line(devNumPath);
 
-        int devNumInt = Shell::Utils::parseInt(devNum);
+        try {
+            int devNumInt = Shell::Utils::parseInt(devNum);
 
-        entries.emplace_back(
-            devNumInt,
-            usbPath
-        );
+            entries.emplace_back(
+                devNumInt,
+                usbPath
+            );
+        } catch (const invalid_argument& e) {
+            // skip if does not have a dev num
+        }
     });
-
 
 
     // if no device was found

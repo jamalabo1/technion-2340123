@@ -271,12 +271,6 @@ void SmallShell::executeCommand(const char* cmd_line)
         catch (const CommandDomainError& e)
         {
             std::cerr << APP_NAME << " error: " << ctx.get_cmdId() << ": " << e.what() << std::endl;
-
-            // report the error and quit
-            if (services->children->isChild)
-            {
-                exit(0);
-            }
         }
     }
     catch (const SyscallException& e)
@@ -284,24 +278,17 @@ void SmallShell::executeCommand(const char* cmd_line)
         string errorMsg = APP_NAME + " error: " + e.what() + " failed";
 
         perror(errorMsg.c_str());
-        // I need a global child error handling here.
-        if (services->children->isChild)
-        {
-            exit(0);
-        }
     }
 
     catch (const std::exception& e)
     {
         // TODO: what do general exception means? (they didnt originate from the app)
         std::cerr << "general error: " << e.what() << std::endl;
-
-        if (services->children->isChild)
-        {
-            exit(0);
-        }
-
-        throw e;
+    }
+    // report the error and quit
+    if (services->children->isChild)
+    {
+        exit(0);
     }
 }
 

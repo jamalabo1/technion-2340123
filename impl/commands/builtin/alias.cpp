@@ -50,7 +50,6 @@ void AliasCommand::execute()
 {
     auto& aliasService = services->aliases;
 
-    //TODO:must be original
     if (listAll)
     {
         const auto& aliases = aliasService->mapList();

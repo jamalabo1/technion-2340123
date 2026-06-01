@@ -18,7 +18,6 @@ PipeCommand::PipeCommand(CommandCtx &ctx, unique_ptr<Command> cmd1, unique_ptr<C
     cmd2(std::move(cmd2)) {
 }
 
-// TODO: expand on this later
 #define GUARDED_SYSCALL(call, ...) if(call(__VA_ARGS__) == -1) throw SyscallException(#call);
 
 #define CLOSE(...) GUARDED_SYSCALL(close, __VA_ARGS__)

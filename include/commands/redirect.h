@@ -8,14 +8,14 @@
 #include "command.h"
 
 // I/O Redirection command
-class RedirectionCommand : public Command {
-private:
-
-public:
-    void execute() override;
-
-    void prepare() override;
-};
+// class RedirectionCommand : public Command {
+// private:
+//
+// public:
+//     void execute() override;
+//
+//     void prepare() override;
+// };
 
 
 // to be efficent and remove redundency, i'll treat i/o redirection as special pipe commands
