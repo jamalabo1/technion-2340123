@@ -148,7 +148,9 @@ void SysInfoCommand::execute()
     std::smatch match;
     if (!std::regex_search(stat, match, pattern))
     {
-        throw std::logic_error("where is btime??");
+        // throw std::logic_error("where is btime??");
+        //no-op instead
+        return;
     }
 
     long long btime = std::stoll(match[2].str());

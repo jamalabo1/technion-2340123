@@ -30,11 +30,15 @@ void CommandProcManagement::waitFgProc() {
     // get the proc
     auto proc = getFgProc();
 
-    if (proc == nullptr) {
-        throw std::logic_error("no proc to wait on");
-    }
-    if (proc->wasKilled) {
-        throw std::logic_error("proc was already killed");
+    // if (proc == nullptr) {
+    //     throw std::logic_error("no proc to wait on");
+    // }
+    // if (proc->wasKilled) {
+    //     throw std::logic_error("proc was already killed");
+    // }
+    if (proc == nullptr || proc->wasKilled) {
+        // no-op instead, this is the case where the signal is received exactly before this line
+        return;
     }
 
     // NOTE: YOU MUST MAKE SURE IT'S REMOVED FROM THE JOB TABLE TO PREVENT DOUBLE WAITPID
