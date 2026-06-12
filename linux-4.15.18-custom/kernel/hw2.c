@@ -4,7 +4,7 @@
 
 asmlinkage long sys_hello(void)
 {
-    printk("Hello, World2!\n");
+    printk("Hello, World!\n");
     return 0;
 }
 
@@ -146,6 +146,7 @@ asmlinkage long sys_flip_ban_branch(int height, char ban)
         }
 
         // then go parent
+        // according to @166 it does not matter for real or this.
         task = task->parent;
         // and decrease height
         height--;

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEST_DIR="tests"
+TEST_DIR="../tests"
 
 # Check if directory exists
 if [ ! -d "$TEST_DIR" ]; then
