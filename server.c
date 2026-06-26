@@ -31,29 +31,14 @@ void getargs(int *port, int argc, char *argv[]) {
 
 // TODO: HW3 — Extend getargs() to parse the full argument list.
 
-void process_request(int connfd, server_log log) {
+void process_request(int connfd, server_log log, threads_stats t) {
     // TODO: HW3 — Record the request arrival time here.
-
-    // DEMO PURPOSE ONLY:
-    // This is a dummy request handler that immediately processes the
-    // request in the master thread without concurrency. Replace this with
-    // logic that enqueues the connection so a worker thread handles it.
-
-    threads_stats t = malloc(sizeof(struct Threads_stats));
-    t->id = 0; // Thread ID (placeholder)
-    t->stat_req = 0; // Static request count
-    t->dynm_req = 0; // Dynamic request count
-    t->post_req = 0; // POST request count
-    t->total_req = 0; // Total request count
-
     time_stats dum;
 
     // gettimeofday(&arrival, NULL);
 
-    // Call the request handler (immediate in master thread — DEMO ONLY)
+    // Call the request handler
     requestHandle(connfd, dum, t, log);
-
-    free(t); // Cleanup
 }
 
 pthread_cond_t has_requests = PTHREAD_COND_INITIALIZER;
@@ -64,6 +49,7 @@ pthread_mutex_t requests_q_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct thread_ctx {
     server_log log;
     rqueue_t *rqueue;
+    int id;
 };
 
 typedef struct thread_ctx thread_ctx_t;
@@ -72,6 +58,17 @@ void *processor_entry(void *thread_ctx_p) {
     printf("thread created\n");
 
     thread_ctx_t *thread_ctx = (thread_ctx_t *) thread_ctx_p;
+
+
+    // this is literily thread safe since it's per-thread structure
+    threads_stats t = malloc(sizeof(struct Threads_stats));
+    t->id = thread_ctx->id; // Thread ID (placeholder)
+
+    t->stat_req = 0; // Static request count
+    t->dynm_req = 0; // Dynamic request count
+    t->post_req = 0; // POST request count
+    t->total_req = 0; // Total request count
+
 
     // not busy waiting but it means the thread is active
     while (1) {
@@ -84,30 +81,46 @@ void *processor_entry(void *thread_ctx_p) {
         }
 
 
+        // don't check the lock I already have it
         int connfd = rqueue_pop(thread_ctx->rqueue);
+
         pthread_mutex_unlock(&requests_q_mutex);
 
 
-        process_request(connfd, thread_ctx->log);
+        process_request(connfd, thread_ctx->log, t);
         Close(connfd); // Close the connection
     }
+
+
 
     return NULL;
 }
 
 pthread_t threads[MAX_THREADS];
 
-void init_threads_pool(thread_ctx_t *threads_ctx) {
+void init_threads_pool(server_log log, rqueue_p queue) {
     for (int i = 0; i < MAX_THREADS; i++) {
         pthread_t thread_id;
 
+
+        thread_ctx_t *thread_ctx = malloc(sizeof(thread_ctx_t));
+
+        thread_ctx->rqueue = queue;
+        thread_ctx->log = log;
+        thread_ctx->id = i + 1;
+
+
         // we need to create a thread and add it to the pool
-        pthread_create(&thread_id, NULL, processor_entry, threads_ctx);
+        int status = pthread_create(&thread_id, NULL, processor_entry, thread_ctx);
+        if (status == -1) {
+            free(thread_ctx);
+        }
 
         // bookkeep
         threads[i] = thread_id;
     }
 }
+
 
 int main(int argc, char *argv[]) {
     // if weired print stuff happens it's because of fucking buffering
@@ -117,17 +130,13 @@ int main(int argc, char *argv[]) {
     // Create the global server log
     server_log log = create_log();
 
-    thread_ctx_t *thread_ctx = malloc(sizeof(thread_ctx_t));
-
-    thread_ctx->rqueue = (rqueue_t *) malloc(sizeof(rqueue_t));
-    thread_ctx->log = log;
-
+    rqueue_p rqueue = malloc(sizeof(rqueue_t));
     // init the queue
-    init_rqueue(thread_ctx->rqueue);
+    init_rqueue(rqueue, &requests_q_mutex);
 
 
     // init threads with ctx
-    init_threads_pool(thread_ctx);
+    init_threads_pool(log, rqueue);
 
     int port, clientlen;
     struct sockaddr_in clientaddr;
@@ -135,23 +144,20 @@ int main(int argc, char *argv[]) {
     getargs(&port, argc, argv);
 
     int listenfd = Open_listenfd(port);
-    clientlen = sizeof(clientaddr);
 
     // this is not busy waiting rather the server is active
     while (1) {
+        clientlen = sizeof(clientaddr);
         int connfd = Accept(listenfd, (SA *) &clientaddr, (socklen_t *) &clientlen);
         //connected accepted - encque it.
 
+        // wait(thread blocking no busy wait) until the queue not full it internally uses sempahores
         // so we aquire the lock
-        pthread_mutex_lock(&requests_q_mutex);
+        rqueue_append(rqueue, connfd);
 
-        rqueue_append(thread_ctx->rqueue, connfd);
-
-        pthread_mutex_unlock(&requests_q_mutex);
 
         // then we tell everybody the state changed
         pthread_cond_signal(&has_requests);
-
         // process_request(connfd, log);
     }
 
