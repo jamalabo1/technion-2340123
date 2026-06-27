@@ -55,7 +55,7 @@ void *processor_entry(void *thread_ctx_p) {
     thread_ctx_t *thread_ctx = (thread_ctx_t *) thread_ctx_p;
 
     //TODO: remove later
-    printf("thread %d created\n", thread_ctx->id);
+    // printf("thread %d created\n", thread_ctx->id);
 
 
     // this is literily thread safe since it's per-thread structure
@@ -103,6 +103,10 @@ void *processor_entry(void *thread_ctx_p) {
             current_udp_node->next = item;
 
             item->data = rqueue_pop(thread_ctx->udp_rqueue);
+            // terminate the list: the last node must have next == NULL, otherwise
+            // both the processing walk and the free walk run off into garbage
+            // (double free / corruption under a dirty heap).
+            item->next = NULL;
 
             current_udp_node = item;
         }
@@ -123,7 +127,7 @@ void *processor_entry(void *thread_ctx_p) {
 
 
         // now process
-        printf("thread %d processing\n", thread_ctx->id);
+        // printf("thread %d processing\n", thread_ctx->id);
 
 
         current_udp_node = udp_work.next;

@@ -1,30 +1,4 @@
-project(HW3-Server)
-#cmake_minimum_required(VERSION 3.24)
-#
-#add_executable(server
-#
-#        server.c
-#        request.c
-#        log.c
-#        segel.c
-#)
-#
-#add_executable(client
-#
-#        client.c
-#        segel.c
-#)
-#
-#add_executable(
-#        output
-#
-#        output.c
-#)
-#
-#include_directories(.)
-
 cmake_minimum_required(VERSION 3.16)
-
 project(tiny_server C)
 
 set(CMAKE_C_STANDARD 99)
@@ -67,11 +41,11 @@ add_custom_target(copy_public ALL
         ${CMAKE_CURRENT_BINARY_DIR}/public/output.cgi
 
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/favicon.ico
+        ${CMAKE_CURRENT_SOURCE_DIR}/public/favicon.ico
         ${CMAKE_CURRENT_BINARY_DIR}/public/favicon.ico
 
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/home.html
+        ${CMAKE_CURRENT_SOURCE_DIR}/public/home.html
         ${CMAKE_CURRENT_BINARY_DIR}/public/home.html
 
         DEPENDS output_cgi
