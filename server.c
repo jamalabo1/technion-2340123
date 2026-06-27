@@ -3,8 +3,6 @@
 #include "log.h"
 #include "requests_queue.h"
 
-#define MAX_THREADS 3
-
 //
 // server.c: A very, very simple web server
 //
@@ -17,7 +15,7 @@
 
 // Parses command-line arguments
 void validate_args(int argc, char *argv[]) {
-    if (argc < 2) {
+    if (argc < 6) {
         fprintf(stderr, "Usage: %s <port>\n", argv[0]);
         exit(1);
     }
@@ -69,118 +67,108 @@ void *processor_entry(void *thread_ctx_p) {
     t->post_req = 0; // POST request count
     t->total_req = 0; // Total request count
 
+    int I_have_lock = 0;
 
     // not busy waiting but it means the thread is active
     while (1) {
-        // it can go like this, assume I do here
-        pthread_mutex_lock(&thread_ctx->udp_queue_mutex);
-        // now the problem can be the following
-        // I aquired the lock, now I want the next lock, which is requests_q_mutex, and I and master thread competering for it
-        // assume comes thread B and aquires it, is this a problem?
-        // it shouldn't be because threadB continues, it either pops some requests and frees the lock or goes to sleep
-        // so it gives up the lock. ok, how about the producer could it become stuck? only if it aquired the rqueue mutex before udp
-        // which the strict ordering is preventing. so I assume this is safe.
-        int has_udp_lock = 1;
-
-        // so instead i'll wake every thread for now, and let them check if to sleep again
+        // I want to sleep on this lock
         pthread_mutex_lock(&requests_q_mutex);
 
-        int udp_queue = 1;
-        int tcp_queue = 1;
-        // is_empty must be called while holding the mutex.
+
         while (
-            1
+            rqueue_is_empty(thread_ctx->rqueue) && rqueue_is_empty(thread_ctx->udp_rqueue)
         ) {
-            tcp_queue = rqueue_is_empty(thread_ctx->rqueue);
-
-            // this requires a mutex!!.
-            udp_queue = rqueue_is_empty(thread_ctx->udp_rqueue);
-
-            if (has_udp_lock == 1) {
-                // don't sleep having the lock.
-                pthread_mutex_unlock(&thread_ctx->udp_queue_mutex);
-                has_udp_lock = 0;
-            }
-
-            if (tcp_queue == 0 || udp_queue == 0) {
-                // if one of them is empty then break. must do it before sleep
-                break;
-            }
-            // else if no requests are avilable then enter cond blocking
+        label_sleep:
+            // then wait until not empty
             pthread_cond_wait(&has_requests, &requests_q_mutex);
+        }
+        // otheriwse I have the lock lets process
 
-            // TODO: since using also for specfic udp's make it broadcaset.
+
+        typedef struct udpNode {
+            rqueue_request_data_t data;
+            struct udpNode *next;
+        } udpNode;
+
+        udpNode udp_work;
+        udp_work.next = NULL;
+
+
+        udpNode *current_udp_node = &udp_work;
+        // pull all the udp work
+        while (!rqueue_is_empty(thread_ctx->udp_rqueue)) {
+            udpNode *item = malloc(sizeof(udpNode));
+
+
+            current_udp_node->next = item;
+
+            item->data = rqueue_pop(thread_ctx->udp_rqueue);
+
+            current_udp_node = item;
         }
 
-        // I think this needs to be changed later on since it creating friction. but what I need to do is if i'm processing udp
-        // then give up the lock for other threads
+
+        short has_tcp = 0;
+        rqueue_request_data_t conndata;
 
 
-        // if has udp requests, then handle *all* of them first, since this is thread specific
-        if (udp_queue == 0) {
-            // being here means I don't have the lock, so let me aquire it
-            pthread_mutex_lock(&thread_ctx->udp_queue_mutex);
-
-            // process all the udps
-            while (!rqueue_is_empty(thread_ctx->udp_rqueue)) {
-                // get the udp request
-                rqueue_request_data_t udpdata = rqueue_pop(thread_ctx->udp_rqueue);
-
-                char *resp = malloc(sizeof(char) * 1024);
-
-                sprintf(resp, "response from thread %d\n", thread_ctx->id);
-                int resp_size = strlen(resp);
-
-                UDP_Write(udpdata.connfd, &udpdata.clientaddr, resp, resp_size);
-            }
-
-            // then give up the lock
-            pthread_mutex_unlock(&thread_ctx->udp_queue_mutex);
+        if (!rqueue_is_empty(thread_ctx->rqueue)) {
+            // don't check the lock I already have it (pthread_cond wakes holding the lock)
+            conndata = rqueue_pop(thread_ctx->rqueue);
+            has_tcp = 1;
         }
 
-        // // if no tcp then skip and go to sleep
-        if (tcp_queue == 1) {
-            // IMPORTANT!!! You have the rqueue mutex so let go of it
-            pthread_mutex_unlock(&requests_q_mutex);
-            continue;
-        }
-
-        printf("thread %d processing\n", thread_ctx->id);
-
-        // conceptually, I don't want the thread to sleep on tcp independet of udp
-
-        //  let's pop the first request, but make sure to lock
-        // pthread_mutex_lock(&requests_q_mutex);
-        //
-        // // is_empty must be called while holding the mutex.
-        // while (rqueue_is_empty(thread_ctx->rqueue)) {
-        //     // if no requests are avilable then enter cond blocking
-        //     pthread_cond_wait(&has_requests, &requests_q_mutex);
-        // }
-
-        // don't check the lock I already have it (pthread_cond wakes holding the lock)
-        rqueue_request_data_t conndata = rqueue_pop(thread_ctx->rqueue);
-
-
-        // don't hold the mutex while processing! shooting your self in the foot and
-        // defices the purpose of the parallelism.
+        // then give up the lock
         pthread_mutex_unlock(&requests_q_mutex);
 
 
-        time_stats dum;
-
-        // the problem with doing this in the master thread is the vtime is scopped meaning it's life-cycle is tied to the master thread not this
-        // thread, I could've replaced it with pointers instead but lets keep it as is.
-        dum.task_arrival = conndata.arrival_time;
-        dum.task_dispatch = the_time();
-
-        // gettimeofday(&arrival, NULL);
-
-        // Call the request handler
-        requestHandle(conndata.connfd, dum, t, thread_ctx->log);
+        // now process
+        printf("thread %d processing\n", thread_ctx->id);
 
 
-        Close(conndata.connfd); // Close the connection
+        current_udp_node = udp_work.next;
+        while (current_udp_node != NULL) {
+            //get the udp request
+
+            rqueue_request_data_t udpdata = current_udp_node->data;
+
+            char resp[1024];
+            int resp_size = snprintf(resp, sizeof(resp),
+                                     "response from thread %d\n",
+                                     thread_ctx->id);
+
+
+            UDP_Write(udpdata.connfd, &udpdata.clientaddr, resp, resp_size);
+
+            current_udp_node = current_udp_node->next;
+        }
+
+        // then free
+        current_udp_node = udp_work.next;
+        while (current_udp_node != NULL) {
+            udpNode *nextNode = current_udp_node->next;
+            free(current_udp_node);
+            current_udp_node = nextNode;
+        }
+
+
+        // if there is a tcp
+        if (has_tcp) {
+            time_stats dum;
+
+            // the problem with doing this in the master thread is the vtime is scopped meaning it's life-cycle is tied to the master thread not this
+            // thread, I could've replaced it with pointers instead but lets keep it as is.
+            dum.task_arrival = conndata.arrival_time;
+            dum.task_dispatch = the_time();
+
+            // gettimeofday(&arrival, NULL);
+
+            // Call the request handler
+            requestHandle(conndata.connfd, dum, t, thread_ctx->log);
+
+
+            Close(conndata.connfd); // Close the connection
+        }
     }
 
 
@@ -188,23 +176,24 @@ void *processor_entry(void *thread_ctx_p) {
 }
 
 
-thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue) {
+thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_count) {
     // array of thread ctxs.
-    thread_ctx_t **threads = malloc(MAX_THREADS * sizeof(thread_ctx_t *));
+    thread_ctx_t **threads = malloc(thread_count * sizeof(thread_ctx_t *));
 
-    for (int i = 0; i < MAX_THREADS; i++) {
+    for (int i = 0; i < thread_count; i++) {
         pthread_t thread_id;
 
 
         thread_ctx_t *thread_ctx = malloc(sizeof(thread_ctx_t));
 
-        pthread_mutex_init(&thread_ctx->udp_queue_mutex, NULL);
+        // pthread_mutex_init(&thread_ctx->udp_queue_mutex, NULL);
 
         // instead of reinveing the wheel i'l use the same queue structure, just for each thread
         rqueue_p udp_rqueue = rqueue_create();
 
         // init the queue, and tie it to udp queue mutex, since this is udp queue, then make it's size unlimited.
-        rqueue_init(udp_rqueue, &thread_ctx->udp_queue_mutex, -1);
+        // rqueue_init(udp_rqueue, &thread_ctx->udp_queue_mutex, -1);
+        rqueue_init(udp_rqueue, &requests_q_mutex, -1);
         thread_ctx->udp_rqueue = udp_rqueue;
 
 
@@ -215,7 +204,7 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue) {
 
         // we need to create a thread and add it to the pool
         int status = pthread_create(&thread_id, NULL, processor_entry, thread_ctx);
-        if (status == -1) {
+        if (status != 0) {
             //TODO: make a centralized handler
             // exit on error policy
             exit(0);
@@ -257,7 +246,7 @@ int main(int argc, char *argv[]) {
 
 
     // init threads with ctx
-    thread_ctx_t **threads = init_threads_pool(log, rqueue);
+    thread_ctx_t **threads = init_threads_pool(log, rqueue, threads_count);
 
     struct sockaddr_in clientaddr;
 
@@ -300,12 +289,15 @@ int main(int argc, char *argv[]) {
             // since I have the max thread number, buff_len = log(n), but since I don't have the log function yet, i'll pass as is. since log(n) < n, although this is sloppy
             // TODO: change to log or smthing (maybe simple string len check)
 
-            char *buff = malloc(threads_count * sizeof(char));
-            int buff_len = sizeof(buff);
 
-            UDP_Read(udpsd, &clientaddr, buff, buff_len);
-
+            char buff[32];
+            int n = UDP_Read(udpsd, &clientaddr, buff, sizeof(buff) - 1);
+            if (n <= 0) {
+                continue;
+            }
+            buff[n] = '\0';
             int threadId = atoi(buff);
+
 
             rqueue_request_data_t data = {
                 .connfd = udpsd,
