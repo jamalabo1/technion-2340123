@@ -10,13 +10,14 @@
 #define LOCK(mutex) pthread_mutex_lock(&log->mutex)
 #define UNLOCK(mutex) pthread_mutex_unlock(&log->mutex)
 
-typedef struct Log_entry *log_entry;
+typedef struct Log_entry *log_entry_p;
+typedef struct Log_entry log_entry;
 
 struct Log_entry {
     char *data;
     int len;
 
-    log_entry next;
+    log_entry_p next;
 };
 
 
@@ -40,10 +41,9 @@ struct Server_Log {
     int writer_arrived;
 
 
-
     //TODO: use a better data structure! this scales poorly: O(N) reads
-    log_entry head;
-    log_entry last;
+    log_entry_p head;
+    log_entry_p last;
     long entries_length;
 };
 
@@ -98,7 +98,7 @@ int _protected_read(server_log log, char * *dst) {
         return -1;
     }
 
-    log_entry current = log->head;
+    log_entry_p current = log->head;
 
     int i = 0;
 
@@ -118,8 +118,9 @@ int _protected_read(server_log log, char * *dst) {
     return log->entries_length;
 }
 
+// data_len is strlen'ed
 void _protected_write(server_log log, const char *data, int data_len) {
-    log_entry entry = (log_entry) malloc(sizeof(log_entry));
+    log_entry_p entry = malloc(sizeof(log_entry));
 
     entry->data = (char *) malloc(data_len * sizeof(char));
     // copy the data
@@ -127,6 +128,7 @@ void _protected_write(server_log log, const char *data, int data_len) {
 
 
     entry->len = data_len;
+    entry->next = NULL;
 
     // update last's next
     log->last->next = entry;

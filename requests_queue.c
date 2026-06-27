@@ -8,6 +8,15 @@
 #define QUEUE_LOCK pthread_mutex_lock(queue->mutex);
 #define QUEUE_UNLOCK pthread_mutex_unlock(queue->mutex);
 
+struct RequestsQueue {
+    rqueue_request_t *head;
+    rqueue_request_t *last;
+
+    pthread_mutex_t *mutex;
+    sem_t capacity_sem;
+
+    short check_capacity;
+};
 
 short rqueue_is_empty(rqueue_t *queue) {
     short result = (queue->head == NULL);
@@ -15,7 +24,25 @@ short rqueue_is_empty(rqueue_t *queue) {
     return !!result;
 }
 
-void rqueue_pop(rqueue_t *queue, rqueue_request_data_t *data) {
+rqueue_p rqueue_create() {
+    return malloc(sizeof(rqueue_t));
+}
+
+void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
+    queue->head = NULL;
+    queue->last = NULL;
+    queue->mutex = mutex;
+
+    if (queue_capacity > 0) {
+        sem_init(&queue->capacity_sem, 0, queue_capacity);
+        queue->check_capacity = 1;
+    } else {
+        queue->check_capacity = 0;
+    }
+}
+
+
+rqueue_request_data_t rqueue_pop(rqueue_t *queue) {
     rqueue_request_t *head = queue->head;
     // this shouldn't be generaly the case
     // since threads have a cond var on is_queue_empty, but i'll keep it.
@@ -23,8 +50,8 @@ void rqueue_pop(rqueue_t *queue, rqueue_request_data_t *data) {
         return;
     }
 
-    data->arrival_time = head->data.arrival_time;
-    data->connfd = head->data.connfd;
+    // copy it, I mean why not?
+    rqueue_request_data_t data = head->data;
 
     // remove from list
     queue->head = head->next;
@@ -35,26 +62,22 @@ void rqueue_pop(rqueue_t *queue, rqueue_request_data_t *data) {
     // then free
     free(head);
 
+    if (queue->check_capacity) {
+        // now after we took a slot out, we freed one of the virtual splots so we do
+        sem_post(&queue->capacity_sem);
+    }
 
-    // now after we took a slot out, we freed one of the virtual splots so we do
-    sem_post(&queue->capacity_sem);
+    return data;
 }
 
-void init_rqueue(rqueue_t *queue, pthread_mutex_t *mutex) {
-    queue->head = NULL;
-    queue->last = NULL;
-    queue->mutex = mutex;
-
-    int queue_capacity = 5;
-
-    sem_init(&queue->capacity_sem, 0, queue_capacity);
-}
 
 // temp on the condition mutex is achieved.
 // later mutex is moved here....
 void rqueue_append(rqueue_t *queue, rqueue_request_data_t data) {
-    // can we aquire a virtual slot ? if so then insert other wise wait for some body to free.
-    sem_wait(&queue->capacity_sem);
+    if (queue->check_capacity) {
+        // can we aquire a virtual slot ? if so then insert otherwise wait for somebody to free.
+        sem_wait(&queue->capacity_sem);
+    }
 
     // then aquire the readers mutex
     QUEUE_LOCK
@@ -63,8 +86,8 @@ void rqueue_append(rqueue_t *queue, rqueue_request_data_t data) {
     //TODO: handle failing mallocs.
     rqueue_request_t *request = malloc(sizeof(rqueue_request_t));
 
-    request->data.arrival_time = data.arrival_time;
-    request->data.connfd = data.connfd;
+    // already copied
+    request->data = data;
 
 
     request->next = NULL;
