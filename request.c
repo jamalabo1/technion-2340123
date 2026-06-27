@@ -198,6 +198,7 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
         requestError(fd, method, "501", "Not Implemented", "OS-HW3 Server does not implement this method", tm_stats, t_stats);
         return;
     }
+
     // --- SEND ---
     int total_header_len = append_stats(resp_headers, t_stats, tm_stats);
     Rio_writen(fd, resp_headers, total_header_len);

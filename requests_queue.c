@@ -9,15 +9,15 @@
 #define QUEUE_UNLOCK pthread_mutex_unlock(queue->mutex);
 
 
-short is_queue_empty(rqueue_t *queue) {
-    short result = queue->head == NULL;
+short rqueue_is_empty(rqueue_t *queue) {
+    short result = (queue->head == NULL);
 
     return !!result;
 }
 
 int rqueue_pop(rqueue_t *queue) {
     rqueue_request_t *head = queue->head;
-    // this should'nt be generaly the case
+    // this shouldn't be generaly the case
     // since threads have a cond var on is_queue_empty, but i'll keep it.
     if (head == NULL) {
 

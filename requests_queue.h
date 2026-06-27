@@ -19,11 +19,9 @@ typedef struct Request rqueue_request_t;
 
 struct RequestsQueue {
     rqueue_request_t *head;
-
     rqueue_request_t *last;
 
     pthread_mutex_t *mutex;
-
     sem_t capacity_sem;
 };
 
@@ -32,7 +30,7 @@ typedef rqueue_t* rqueue_p;
 
 void init_rqueue(rqueue_t *queue, pthread_mutex_t *mutex);
 
-short is_queue_empty(rqueue_t *queue);
+short rqueue_is_empty(rqueue_t *queue);
 
 int rqueue_pop(rqueue_t *queue);
 

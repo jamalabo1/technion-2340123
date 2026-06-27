@@ -31,16 +31,6 @@ void getargs(int *port, int argc, char *argv[]) {
 
 // TODO: HW3 — Extend getargs() to parse the full argument list.
 
-void process_request(int connfd, server_log log, threads_stats t) {
-    // TODO: HW3 — Record the request arrival time here.
-    time_stats dum;
-
-    // gettimeofday(&arrival, NULL);
-
-    // Call the request handler
-    requestHandle(connfd, dum, t, log);
-}
-
 pthread_cond_t has_requests = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t requests_q_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -55,9 +45,11 @@ struct thread_ctx {
 typedef struct thread_ctx thread_ctx_t;
 
 void *processor_entry(void *thread_ctx_p) {
-    printf("thread created\n");
 
     thread_ctx_t *thread_ctx = (thread_ctx_t *) thread_ctx_p;
+
+    //TODO: remove later
+    printf("thread %d created\n", thread_ctx->id);
 
 
     // this is literily thread safe since it's per-thread structure
@@ -72,25 +64,34 @@ void *processor_entry(void *thread_ctx_p) {
 
     // not busy waiting but it means the thread is active
     while (1) {
-        // otherwise let's pop the first request, but make sure to lock
+        //  let's pop the first request, but make sure to lock
         pthread_mutex_lock(&requests_q_mutex);
 
-        // if no requests are avilable then enter blocking
-        while (is_queue_empty(thread_ctx->rqueue)) {
+        // is_empty must be called while holding the mutex.
+        while (rqueue_is_empty(thread_ctx->rqueue)) {
+            // if no requests are avilable then enter cond blocking
             pthread_cond_wait(&has_requests, &requests_q_mutex);
         }
 
-
-        // don't check the lock I already have it
+        // don't check the lock I already have it (pthread_cond wakes holding the lock)
         int connfd = rqueue_pop(thread_ctx->rqueue);
 
+        // don't hold the mutex while processing! shooting your self in the foot and
+        // defices the purpose of the parallelism.
         pthread_mutex_unlock(&requests_q_mutex);
 
 
-        process_request(connfd, thread_ctx->log, t);
+        // TODO: HW3 — Record the request arrival time here.
+        time_stats dum;
+
+        // gettimeofday(&arrival, NULL);
+
+        // Call the request handler
+        requestHandle(connfd, dum, t, thread_ctx->log);
+
+
         Close(connfd); // Close the connection
     }
-
 
 
     return NULL;
@@ -113,7 +114,9 @@ void init_threads_pool(server_log log, rqueue_p queue) {
         // we need to create a thread and add it to the pool
         int status = pthread_create(&thread_id, NULL, processor_entry, thread_ctx);
         if (status == -1) {
-            free(thread_ctx);
+            //TODO: make a centralized handler
+            // exit on error policy
+            exit(0);
         }
 
         // bookkeep
@@ -149,16 +152,16 @@ int main(int argc, char *argv[]) {
     while (1) {
         clientlen = sizeof(clientaddr);
         int connfd = Accept(listenfd, (SA *) &clientaddr, (socklen_t *) &clientlen);
-        //connected accepted - encque it.
+        //connected accepted - enqueue it.
 
-        // wait(thread blocking no busy wait) until the queue not full it internally uses sempahores
-        // so we aquire the lock
+        // wait (thread blocking no busy wait) until the queue is not full, it internally uses sempahores
+
+        // append is thread safe since it internally uses locks
         rqueue_append(rqueue, connfd);
 
 
         // then we tell everybody the state changed
         pthread_cond_signal(&has_requests);
-        // process_request(connfd, log);
     }
 
     // Clean up the server log before exiting
