@@ -10,6 +10,16 @@
 #define LOCK(mutex) pthread_mutex_lock(&log->mutex)
 #define UNLOCK(mutex) pthread_mutex_unlock(&log->mutex)
 
+typedef struct Log_entry *log_entry;
+
+struct Log_entry {
+    char *data;
+    int len;
+
+    log_entry next;
+};
+
+
 // Opaque struct definition
 struct Server_Log {
     // TODO: Implement internal log storage (e.g., dynamic buffer, linked list, etc.)
@@ -28,6 +38,11 @@ struct Server_Log {
 
     // lock free (atomic) writer is there waiting
     int writer_arrived;
+
+
+    log_entry head;
+    log_entry last;
+    long entries_length;
 };
 
 // Creates a new server log instance (stub)
@@ -48,14 +63,20 @@ server_log create_log() {
     sem_init(&log_inst->log_sem, 0, 1);
 
 
+    // dummy empty head
+    log_inst->head = malloc(sizeof(log_entry));
+    log_inst->head->len = 0;
+    log_inst->head->next = NULL;
+    log_inst->last = log_inst->head;
+
+    log_inst->entries_length = 0;
+
     return log_inst;
 }
 
 // Destroys and frees the log (stub)
 void destroy_log(server_log log) {
     // TODO: Free all internal resources used by the log
-
-
     sem_destroy(&log->log_sem);
 
     pthread_mutex_destroy(&log->rc_mutex);
@@ -64,6 +85,55 @@ void destroy_log(server_log log) {
 
     free(log);
 }
+
+
+int _protected_read(server_log log, char * *dst) {
+    // ok we are given a ref to the buffer var
+    // at that place, we need to create the buffer
+    char *data_ptr = (char *) malloc(log->entries_length * sizeof(char));
+    if (data_ptr == NULL) {
+        // problem
+        return -1;
+    }
+
+    log_entry current = log->head;
+
+    int i = 0;
+
+    while (current != NULL) {
+        // after skipping i bytes, write data of length len
+        memcpy(data_ptr + i, current->data, current->len);
+
+        // now skip len bytes
+        i += current->len;
+
+        current = current->next;
+    }
+
+    // now give them the place were the data lives
+    *dst = data_ptr;
+
+    return log->entries_length;
+}
+
+void _protected_write(server_log log, const char *data, int data_len) {
+    log_entry entry = (log_entry) malloc(sizeof(log_entry));
+
+    entry->data = (char *) malloc(data_len * sizeof(char));
+    // copy the data
+    strcpy(entry->data, data);
+
+
+    entry->len = data_len;
+
+    // update last's next
+    log->last->next = entry;
+    // we are the new last
+    log->last = entry;
+
+    log->entries_length += data_len;
+}
+
 
 // Returns dummy log content as string (stub)
 int get_log(server_log log, char **dst) {
@@ -105,13 +175,8 @@ int get_log(server_log log, char **dst) {
     // through fariness the writer time comes eventually, and it registers it self, therefore subsequent readers get blocked.
     // and the sem-wait(log_sem) will get rotated between the writers only since no reader can wait for it (they are blocked in the writers_cond)
 
+    int len = _protected_read(log, dst);
 
-    const char *dummy = "Log is not implemented.\n";
-    int len = strlen(dummy);
-    *dst = (char *) malloc(len + 1); // Allocate for caller
-    if (*dst != NULL) {
-        strcpy(*dst, dummy);
-    }
 
     LOCK(rc_mutex);
     log->readers_count--;
@@ -146,7 +211,9 @@ void add_to_log(server_log log, const char *data, int data_len) {
 
     // now wait for the already there readers to finish and block other writers.
     sem_wait(&log->log_sem);
-    //TODO: [WRITE]
+
+    _protected_write(log, data, data_len);
+
     sem_post(&log->log_sem);
 
     // atomic decrease do it before wc_mutex to have writer_arrived <= writers_count after lock

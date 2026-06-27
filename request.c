@@ -154,7 +154,13 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
     Rio_readlineb(&rio, buf, MAXLINE);
     sscanf(buf, "%s %s %s", method, uri, version);
 
+    // log the request
+
     if (strcasecmp(method, "GET") == 0) {
+        //TODO: only log get requests?
+        add_to_log(log, buf, strlen(buf));
+
+
         requestReadhdrs(&rio);
         is_static = requestParseURI(uri, filename, cgiargs);
 
@@ -187,8 +193,10 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
             sprintf(resp_headers, "HTTP/1.0 200 OK\r\n");
             sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
         }
+
+
     } else if (strcasecmp(method, "POST") == 0) {
-        body_len = get_log(log, (char**)&body_content);
+        body_len = get_log(log, (char**) &body_content);
 
         sprintf(resp_headers, "HTTP/1.0 200 OK\r\n");
         sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
