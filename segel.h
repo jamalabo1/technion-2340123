@@ -186,4 +186,6 @@ int UDP_FillSockAddr(struct sockaddr_in *addr, char *hostname, int port);
 int UDP_Write(int sd, struct sockaddr_in *addr, char *buffer, int n);
 int UDP_Read(int sd, struct sockaddr_in *addr, char *buffer, int n);
 
+struct timeval the_time();
+
 #endif /* __CSAPP_H__ */

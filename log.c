@@ -40,6 +40,8 @@ struct Server_Log {
     int writer_arrived;
 
 
+
+    //TODO: use a better data structure! this scales poorly: O(N) reads
     log_entry head;
     log_entry last;
     long entries_length;

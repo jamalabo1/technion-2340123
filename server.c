@@ -44,8 +44,8 @@ struct thread_ctx {
 
 typedef struct thread_ctx thread_ctx_t;
 
-void *processor_entry(void *thread_ctx_p) {
 
+void *processor_entry(void *thread_ctx_p) {
     thread_ctx_t *thread_ctx = (thread_ctx_t *) thread_ctx_p;
 
     //TODO: remove later
@@ -73,33 +73,43 @@ void *processor_entry(void *thread_ctx_p) {
             pthread_cond_wait(&has_requests, &requests_q_mutex);
         }
 
+        rqueue_request_data_t *conndata = malloc(sizeof(rqueue_request_data_t));
+
         // don't check the lock I already have it (pthread_cond wakes holding the lock)
-        int connfd = rqueue_pop(thread_ctx->rqueue);
+        rqueue_pop(thread_ctx->rqueue, conndata);
 
         // don't hold the mutex while processing! shooting your self in the foot and
         // defices the purpose of the parallelism.
         pthread_mutex_unlock(&requests_q_mutex);
 
 
-        // TODO: HW3 — Record the request arrival time here.
         time_stats dum;
+
+        // the problem with doing this in the master thread is the vtime is scopped meaning it's life-cycle is tied to the master thread not this
+        // thread, I could've replaced it with pointers instead but lets keep it as is.
+        dum.task_arrival = conndata->arrival_time;
+        dum.task_dispatch = the_time();
 
         // gettimeofday(&arrival, NULL);
 
         // Call the request handler
-        requestHandle(connfd, dum, t, thread_ctx->log);
+        requestHandle(conndata->connfd, dum, t, thread_ctx->log);
 
 
-        Close(connfd); // Close the connection
+        Close(conndata->connfd); // Close the connection
+
+        free(conndata);
     }
 
 
     return NULL;
 }
 
-pthread_t threads[MAX_THREADS];
 
-void init_threads_pool(server_log log, rqueue_p queue) {
+thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue) {
+    // array of thread ctxs.
+    thread_ctx_t **threads = malloc(sizeof(thread_ctx_t));
+
     for (int i = 0; i < MAX_THREADS; i++) {
         pthread_t thread_id;
 
@@ -120,8 +130,9 @@ void init_threads_pool(server_log log, rqueue_p queue) {
         }
 
         // bookkeep
-        threads[i] = thread_id;
+        threads[i] = thread_ctx;
     }
+    return threads;
 }
 
 
@@ -139,7 +150,7 @@ int main(int argc, char *argv[]) {
 
 
     // init threads with ctx
-    init_threads_pool(log, rqueue);
+    thread_ctx_t** threads = init_threads_pool(log, rqueue);
 
     int port, clientlen;
     struct sockaddr_in clientaddr;
@@ -154,11 +165,15 @@ int main(int argc, char *argv[]) {
         int connfd = Accept(listenfd, (SA *) &clientaddr, (socklen_t *) &clientlen);
         //connected accepted - enqueue it.
 
+        rqueue_request_data_t data = {
+            .connfd = connfd,
+            // here the time is when seen first not inserted (can be delayed due to locking or full)
+            .arrival_time = the_time(),
+        };
+
         // wait (thread blocking no busy wait) until the queue is not full, it internally uses sempahores
-
         // append is thread safe since it internally uses locks
-        rqueue_append(rqueue, connfd);
-
+        rqueue_append(rqueue, data);
 
         // then we tell everybody the state changed
         pthread_cond_signal(&has_requests);

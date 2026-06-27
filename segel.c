@@ -10,6 +10,7 @@ void unix_error(char *msg) /* unix-style error */
     fprintf(stderr, "%s: %s\n", msg, strerror(errno));
     exit(0);
 }
+
 /* $end unixerror */
 
 void posix_error(int code, char *msg) /* posix-style error */
@@ -29,20 +30,19 @@ void app_error(char *msg) /* application error */
     fprintf(stderr, "%s\n", msg);
     exit(0);
 }
+
 /* $end errorfuns */
 
 
-int Gethostname(char *name, size_t len) 
-{
-  int rc;
+int Gethostname(char *name, size_t len) {
+    int rc;
 
-  if ((rc = gethostname(name, len)) < 0)
-    unix_error("Setenv error");
-  return rc;
+    if ((rc = gethostname(name, len)) < 0)
+        unix_error("Setenv error");
+    return rc;
 }
 
-int Setenv(const char *name, const char *value, int overwrite)
-{
+int Setenv(const char *name, const char *value, int overwrite) {
     int rc;
 
     if ((rc = setenv(name, value, overwrite)) < 0)
@@ -55,36 +55,33 @@ int Setenv(const char *name, const char *value, int overwrite)
  ********************************************/
 
 /* $begin forkwrapper */
-pid_t Fork(void) 
-{
+pid_t Fork(void) {
     pid_t pid;
 
     if ((pid = fork()) < 0)
         unix_error("Fork error");
     return pid;
 }
+
 /* $end forkwrapper */
 
-void Execve(const char *filename, char *const argv[], char *const envp[]) 
-{
+void Execve(const char *filename, char *const argv[], char *const envp[]) {
     if (execve(filename, argv, envp) < 0)
         unix_error("Execve error");
 }
 
 /* $begin wait */
-pid_t Wait(int *status) 
-{
+pid_t Wait(int *status) {
     pid_t pid;
 
-    if ((pid  = wait(status)) < 0)
+    if ((pid = wait(status)) < 0)
         unix_error("Wait error");
     return pid;
 }
 
-pid_t WaitPid(pid_t pid, int *status, int options)
-{
-	if ((pid = waitpid(pid, status, options)) < 0) unix_error("Wait error");
-	return pid;
+pid_t WaitPid(pid_t pid, int *status, int options) {
+    if ((pid = waitpid(pid, status, options)) < 0) unix_error("Wait error");
+    return pid;
 }
 
 
@@ -94,26 +91,23 @@ pid_t WaitPid(pid_t pid, int *status, int options)
  * Wrappers for Unix I/O routines
  ********************************/
 
-int Open(const char *pathname, int flags, mode_t mode) 
-{
+int Open(const char *pathname, int flags, mode_t mode) {
     int rc;
 
-    if ((rc = open(pathname, flags, mode))  < 0)
+    if ((rc = open(pathname, flags, mode)) < 0)
         unix_error("Open error");
     return rc;
 }
 
-ssize_t Read(int fd, void *buf, size_t count) 
-{
+ssize_t Read(int fd, void *buf, size_t count) {
     ssize_t rc;
 
-    if ((rc = read(fd, buf, count)) < 0) 
+    if ((rc = read(fd, buf, count)) < 0)
         unix_error("Read error");
     return rc;
 }
 
-ssize_t Write(int fd, const void *buf, size_t count) 
-{
+ssize_t Write(int fd, const void *buf, size_t count) {
     ssize_t rc;
 
     if ((rc = write(fd, buf, count)) < 0)
@@ -121,8 +115,7 @@ ssize_t Write(int fd, const void *buf, size_t count)
     return rc;
 }
 
-off_t Lseek(int fildes, off_t offset, int whence) 
-{
+off_t Lseek(int fildes, off_t offset, int whence) {
     off_t rc;
 
     if ((rc = lseek(fildes, offset, whence)) < 0)
@@ -130,17 +123,15 @@ off_t Lseek(int fildes, off_t offset, int whence)
     return rc;
 }
 
-void Close(int fd) 
-{
-    int rc; 
+void Close(int fd) {
+    int rc;
 
     if ((rc = close(fd)) < 0)
         unix_error("Close error");
 }
 
-int Select(int  n, fd_set *readfds, fd_set *writefds,
-           fd_set *exceptfds, struct timeval *timeout) 
-{
+int Select(int n, fd_set *readfds, fd_set *writefds,
+           fd_set *exceptfds, struct timeval *timeout) {
     int rc;
 
     if ((rc = select(n, readfds, writefds, exceptfds, timeout)) < 0)
@@ -148,8 +139,7 @@ int Select(int  n, fd_set *readfds, fd_set *writefds,
     return rc;
 }
 
-int Dup2(int fd1, int fd2) 
-{
+int Dup2(int fd1, int fd2) {
     int rc;
 
     if ((rc = dup2(fd1, fd2)) < 0)
@@ -157,14 +147,12 @@ int Dup2(int fd1, int fd2)
     return rc;
 }
 
-void Stat(const char *filename, struct stat *buf) 
-{
+void Stat(const char *filename, struct stat *buf) {
     if (stat(filename, buf) < 0)
         unix_error("Stat error");
 }
 
-void Fstat(int fd, struct stat *buf) 
-{
+void Fstat(int fd, struct stat *buf) {
     if (fstat(fd, buf) < 0)
         unix_error("Fstat error");
 }
@@ -172,27 +160,24 @@ void Fstat(int fd, struct stat *buf)
 /***************************************
  * Wrappers for memory mapping functions
  ***************************************/
-void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) 
-{
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
     void *ptr;
 
     if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void *) -1))
         unix_error("mmap error");
-    return(ptr);
+    return (ptr);
 }
 
-void Munmap(void *start, size_t length) 
-{
+void Munmap(void *start, size_t length) {
     if (munmap(start, length) < 0)
         unix_error("munmap error");
 }
 
-/**************************** 
+/****************************
  * Sockets interface wrappers
  ****************************/
 
-int Socket(int domain, int type, int protocol) 
-{
+int Socket(int domain, int type, int protocol) {
     int rc;
 
     if ((rc = socket(domain, type, protocol)) < 0)
@@ -200,41 +185,36 @@ int Socket(int domain, int type, int protocol)
     return rc;
 }
 
-void Setsockopt(int s, int level, int optname, const void *optval, int optlen) 
-{
+void Setsockopt(int s, int level, int optname, const void *optval, int optlen) {
     int rc;
 
     if ((rc = setsockopt(s, level, optname, optval, optlen)) < 0)
         unix_error("Setsockopt error");
 }
 
-void Bind(int sockfd, struct sockaddr *my_addr, int addrlen) 
-{
+void Bind(int sockfd, struct sockaddr *my_addr, int addrlen) {
     int rc;
 
     if ((rc = bind(sockfd, my_addr, addrlen)) < 0)
         unix_error("Bind error");
 }
 
-void Listen(int s, int backlog) 
-{
+void Listen(int s, int backlog) {
     int rc;
 
-    if ((rc = listen(s,  backlog)) < 0)
+    if ((rc = listen(s, backlog)) < 0)
         unix_error("Listen error");
 }
 
-int Accept(int s, struct sockaddr *addr, socklen_t *addrlen) 
-{
+int Accept(int s, struct sockaddr *addr, socklen_t *addrlen) {
     int rc;
-    
+
     if ((rc = accept(s, addr, addrlen)) < 0)
         unix_error("Accept error");
     return rc;
 }
 
-void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen) 
-{
+void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen) {
     int rc;
 
     if ((rc = connect(sockfd, serv_addr, addrlen)) < 0)
@@ -242,22 +222,21 @@ void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen)
 }
 
 /************************
- * DNS interface wrappers 
+ * DNS interface wrappers
  ***********************/
 
 /* $begin gethostbyname */
-struct hostent *Gethostbyname(const char *name) 
-{
+struct hostent *Gethostbyname(const char *name) {
     struct hostent *p;
 
     if ((p = gethostbyname(name)) == NULL)
         dns_error("Gethostbyname error");
     return p;
 }
+
 /* $end gethostbyname */
 
-struct hostent *Gethostbyaddr(const char *addr, int len, int type) 
-{
+struct hostent *Gethostbyaddr(const char *addr, int len, int type) {
     struct hostent *p;
 
     if ((p = gethostbyaddr(addr, len, type)) == NULL)
@@ -272,8 +251,7 @@ struct hostent *Gethostbyaddr(const char *addr, int len, int type)
  * rio_readn - robustly read n bytes (unbuffered)
  */
 /* $begin rio_readn */
-ssize_t rio_readn(int fd, void *usrbuf, size_t n) 
-{
+ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nread;
     char *bufp = usrbuf;
@@ -281,45 +259,45 @@ ssize_t rio_readn(int fd, void *usrbuf, size_t n)
     while (nleft > 0) {
         if ((nread = read(fd, bufp, nleft)) < 0) {
             if (errno == EINTR) /* interrupted by sig handler return */
-                nread = 0;      /* and call read() again */
+                nread = 0; /* and call read() again */
             else
-                return -1;      /* errno set by read() */ 
-        } 
-        else if (nread == 0)
-            break;              /* EOF */
+                return -1; /* errno set by read() */
+        } else if (nread == 0)
+            break; /* EOF */
         nleft -= nread;
         bufp += nread;
     }
-    return (n - nleft);         /* return >= 0 */
+    return (n - nleft); /* return >= 0 */
 }
+
 /* $end rio_readn */
 
 /*
  * rio_writen - robustly write n bytes (unbuffered)
  */
 /* $begin rio_writen */
-ssize_t rio_writen(int fd, void *usrbuf, size_t n) 
-{
+ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nwritten;
     char *bufp = usrbuf;
 
     while (nleft > 0) {
         if ((nwritten = write(fd, bufp, nleft)) <= 0) {
-            if (errno == EINTR)  /* interrupted by sig handler return */
-                nwritten = 0;    /* and call write() again */
+            if (errno == EINTR) /* interrupted by sig handler return */
+                nwritten = 0; /* and call write() again */
             else
-                return -1;       /* errorno set by write() */
+                return -1; /* errorno set by write() */
         }
         nleft -= nwritten;
         bufp += nwritten;
     }
     return n;
 }
+
 /* $end rio_writen */
 
 
-/* 
+/*
  * rio_read - This is a wrapper for the Unix read() function that
  *    transfers min(n, rio_cnt) bytes from an internal buffer to a user
  *    buffer, where n is the number of bytes requested by the user and
@@ -328,82 +306,80 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n)
  *    read() if the internal buffer is empty.
  */
 /* $begin rio_read */
-static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
-{
+static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     int cnt;
 
-    while (rp->rio_cnt <= 0) {  /* refill if buf is empty */
-        rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
+    while (rp->rio_cnt <= 0) {
+        /* refill if buf is empty */
+        rp->rio_cnt = read(rp->rio_fd, rp->rio_buf,
                            sizeof(rp->rio_buf));
         if (rp->rio_cnt < 0) {
             if (errno != EINTR) /* interrupted by sig handler return */
                 return -1;
-        }
-        else if (rp->rio_cnt == 0)  /* EOF */
+        } else if (rp->rio_cnt == 0) /* EOF */
             return 0;
-        else 
+        else
             rp->rio_bufptr = rp->rio_buf; /* reset buffer ptr */
     }
 
     /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
-    cnt = n;          
-    if (rp->rio_cnt < n)   
+    cnt = n;
+    if (rp->rio_cnt < n)
         cnt = rp->rio_cnt;
     memcpy(usrbuf, rp->rio_bufptr, cnt);
     rp->rio_bufptr += cnt;
     rp->rio_cnt -= cnt;
     return cnt;
 }
+
 /* $end rio_read */
 
 /*
  * rio_readinitb - Associate a descriptor with a read buffer and reset buffer
  */
 /* $begin rio_readinitb */
-void rio_readinitb(rio_t *rp, int fd) 
-{
-    rp->rio_fd = fd;  
-    rp->rio_cnt = 0;  
+void rio_readinitb(rio_t *rp, int fd) {
+    rp->rio_fd = fd;
+    rp->rio_cnt = 0;
     rp->rio_bufptr = rp->rio_buf;
 }
+
 /* $end rio_readinitb */
 
 /*
  * rio_readnb - Robustly read n bytes (buffered)
  */
 /* $begin rio_readnb */
-ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) 
-{
+ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nread;
     char *bufp = usrbuf;
-    
+
     while (nleft > 0) {
         if ((nread = rio_read(rp, bufp, nleft)) < 0) {
             if (errno == EINTR) /* interrupted by sig handler return */
-                nread = 0;      /* call read() again */
+                nread = 0; /* call read() again */
             else
-                return -1;      /* errno set by read() */ 
-        } 
-        else if (nread == 0)
-            break;              /* EOF */
+                return -1; /* errno set by read() */
+        } else if (nread == 0)
+            break; /* EOF */
         nleft -= nread;
         bufp += nread;
     }
-    return (n - nleft);         /* return >= 0 */
+    return (n - nleft); /* return >= 0 */
 }
+
 /* $end rio_readnb */
 
-/* 
+/*
  * rio_readlineb - robustly read a text line (buffered)
  */
 /* $begin rio_readlineb */
-ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
-{
+ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
     int n, rc;
     char c, *bufp = usrbuf;
 
-    for (n = 1; n < maxlen; n++) { 
+    for (n = 1; n < maxlen; n++) {
         if ((rc = rio_read(rp, &c, 1)) == 1) {
             *bufp++ = c;
             if (c == '\n')
@@ -412,40 +388,37 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
             if (n == 1)
                 return 0; /* EOF, no data read */
             else
-                break;    /* EOF, some data was read */
+                break; /* EOF, some data was read */
         } else
-            return -1;    /* error */
+            return -1; /* error */
     }
     *bufp = 0;
     return n;
 }
+
 /* $end rio_readlineb */
 
 /**********************************
  * Wrappers for robust I/O routines
  **********************************/
-ssize_t Rio_readn(int fd, void *ptr, size_t nbytes) 
-{
+ssize_t Rio_readn(int fd, void *ptr, size_t nbytes) {
     ssize_t n;
-  
+
     if ((n = rio_readn(fd, ptr, nbytes)) < 0)
         unix_error("Rio_readn error");
     return n;
 }
 
-void Rio_writen(int fd, void *usrbuf, size_t n) 
-{
+void Rio_writen(int fd, void *usrbuf, size_t n) {
     if (rio_writen(fd, usrbuf, n) != n)
         unix_error("Rio_writen error");
 }
 
-void Rio_readinitb(rio_t *rp, int fd)
-{
+void Rio_readinitb(rio_t *rp, int fd) {
     rio_readinitb(rp, fd);
-} 
+}
 
-ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n) 
-{
+ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
     ssize_t rc;
 
     if ((rc = rio_readnb(rp, usrbuf, n)) < 0)
@@ -453,27 +426,25 @@ ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n)
     return rc;
 }
 
-ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
-{
+ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
     ssize_t rc;
 
     if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0)
         unix_error("Rio_readlineb error");
     return rc;
-} 
+}
 
-/******************************** 
+/********************************
  * Client/server helper functions
  ********************************/
 /*
- * open_clientfd - open connection to server at <hostname, port> 
+ * open_clientfd - open connection to server at <hostname, port>
  *   and return a socket descriptor ready for reading and writing.
- *   Returns -1 and sets errno on Unix error. 
+ *   Returns -1 and sets errno on Unix error.
  *   Returns -2 and sets h_errno on DNS (gethostbyname) error.
  */
 /* $begin open_clientfd */
-int open_clientfd(char *hostname, int port) 
-{
+int open_clientfd(char *hostname, int port) {
     int clientfd;
     struct hostent *hp;
     struct sockaddr_in serveraddr;
@@ -486,8 +457,8 @@ int open_clientfd(char *hostname, int port)
         return -2; /* check h_errno for cause of error */
     bzero((char *) &serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
-    bcopy((char *)hp->h_addr, 
-          (char *)&serveraddr.sin_addr.s_addr, hp->h_length);
+    bcopy((char *) hp->h_addr,
+          (char *) &serveraddr.sin_addr.s_addr, hp->h_length);
     serveraddr.sin_port = htons(port);
 
     /* Establish a connection with the server */
@@ -495,69 +466,68 @@ int open_clientfd(char *hostname, int port)
         return -1;
     return clientfd;
 }
+
 /* $end open_clientfd */
 
-/*  
+/*
  * open_listenfd - open and return a listening socket on port
  *     Returns -1 and sets errno on Unix error.
  */
 /* $begin open_listenfd */
-int open_listenfd(int port) 
-{
-    int listenfd, optval=1;
+int open_listenfd(int port) {
+    int listenfd, optval = 1;
     struct sockaddr_in serveraddr;
-  
+
     /* Create a socket descriptor */
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-      fprintf(stderr, "socket failed\n");
-      return -1;
+        fprintf(stderr, "socket failed\n");
+        return -1;
     }
- 
+
     /* Eliminates "Address already in use" error from bind. */
-    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, 
-                   (const void *)&optval , sizeof(int)) < 0) {
-      fprintf(stderr, "setsockopt failed\n");
-      return -1;
+    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
+                   (const void *) &optval, sizeof(int)) < 0) {
+        fprintf(stderr, "setsockopt failed\n");
+        return -1;
     }
 
     /* Listenfd will be an endpoint for all requests to port
        on any IP address for this host */
     bzero((char *) &serveraddr, sizeof(serveraddr));
-    serveraddr.sin_family = AF_INET; 
-    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    serveraddr.sin_port = htons((unsigned short)port); 
-    if (bind(listenfd, (SA *)&serveraddr, sizeof(serveraddr)) < 0) {
-      fprintf(stderr, "bind failed\n");
-      return -1;
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons((unsigned short) port);
+    if (bind(listenfd, (SA *) &serveraddr, sizeof(serveraddr)) < 0) {
+        fprintf(stderr, "bind failed\n");
+        return -1;
     }
 
     /* Make it a listening socket ready to accept connection requests */
     if (listen(listenfd, LISTENQ) < 0) {
-      fprintf(stderr, "listen failed\n");
-      return -1;
+        fprintf(stderr, "listen failed\n");
+        return -1;
     }
     return listenfd;
 }
+
 /* $end open_listenfd */
 
 /******************************************
- * Wrappers for the client/server helper routines 
+ * Wrappers for the client/server helper routines
  ******************************************/
-int Open_clientfd(char *hostname, int port) 
-{
+int Open_clientfd(char *hostname, int port) {
     int rc;
 
     if ((rc = open_clientfd(hostname, port)) < 0) {
         if (rc == -1)
             unix_error("Open_clientfd Unix error");
-        else        
+        else
             dns_error("Open_clientfd DNS error");
     }
     return rc;
 }
 
-int Open_listenfd(int port)
-{
+int Open_listenfd(int port) {
     int rc;
 
     if ((rc = open_listenfd(port)) < 0)
@@ -570,27 +540,45 @@ int Open_listenfd(int port)
  ****************************/
 
 /* $begin udp_open */
-int UDP_Open(int port)
-{
-//TODO
+int UDP_Open(int port) {
+    int sd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sd < 0) {
+        //TODO: handle error
+        exit(0);
+    }
+    // if opening the socket worked let bind the udp
+    struct sockaddr_in serveraddr;
+    serveraddr.sin_family = AF_INET; // it's ipv4
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY); // to any ip available
+    serveraddr.sin_port = htons(port); // and to this port
+    if (bind(sd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+        // if binding failed close the socket and handle
+        close(sd);
+        //TODO: handle error
+    }
+
+    // else everything worked
+    return sd;
 }
+
 /* $end udp_open */
 
-int UDP_FillSockAddr(struct sockaddr_in *addr, char *hostname, int port)
-{
-//TODO
+int UDP_FillSockAddr(struct sockaddr_in *addr, char *hostname, int port) {
+    //TODO
 }
 
-int UDP_Write(int sd, struct sockaddr_in *addr, char *buffer, int n)
-{
+int UDP_Write(int sd, struct sockaddr_in *addr, char *buffer, int n) {
     int len = sizeof(struct sockaddr_in);
     return sendto(sd, buffer, n, 0, (struct sockaddr *) addr, len);
 }
 
-int UDP_Read(int sd, struct sockaddr_in *addr, char *buffer, int n)
-{
+int UDP_Read(int sd, struct sockaddr_in *addr, char *buffer, int n) {
     int len = sizeof(struct sockaddr_in);
     return recvfrom(sd, buffer, n, 0, (struct sockaddr *) addr, (socklen_t *) &len);
 }
 
-
+struct timeval the_time() {
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return t;
+}

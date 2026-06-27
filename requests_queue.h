@@ -8,9 +8,15 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-struct Request {
+struct RequestData {
     int connfd;
+    struct timeval arrival_time;
+};
 
+typedef struct RequestData rqueue_request_data_t;
+
+struct Request {
+    rqueue_request_data_t data;
     struct Request *next;
 };
 
@@ -26,14 +32,14 @@ struct RequestsQueue {
 };
 
 typedef struct RequestsQueue rqueue_t;
-typedef rqueue_t* rqueue_p;
+typedef rqueue_t *rqueue_p;
 
 void init_rqueue(rqueue_t *queue, pthread_mutex_t *mutex);
 
 short rqueue_is_empty(rqueue_t *queue);
 
-int rqueue_pop(rqueue_t *queue);
+void rqueue_pop(rqueue_t *queue, rqueue_request_data_t *request);
 
-void rqueue_append(rqueue_t *queue, int connfd);
+void rqueue_append(rqueue_t *queue, rqueue_request_data_t arrival_time);
 
 #endif //REQUESTS_QUEUE_H
