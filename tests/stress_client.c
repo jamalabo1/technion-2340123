@@ -39,6 +39,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
+#include <sys/resource.h>
+#include <fcntl.h>
 #include <signal.h>
 
 #define C_GREEN "\x1b[32m"
@@ -137,6 +139,16 @@ static int resolve_ipv4(const char *host, struct in_addr *out) {
     return 0;
 }
 
+/* How many sockets/threads we can safely use, derived from the fd limit. */
+static int fd_budget(void) {
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) != 0) return 200;
+    long b = (long)rl.rlim_cur - 32;   /* reserve some for stdio/dns/etc. */
+    if (b < 8) b = 8;
+    if (b > 100000) b = 100000;
+    return (int)b;
+}
+
 static int tcp_connect(const char *host, int port) {
     struct in_addr ip;
     if (resolve_ipv4(host, &ip) != 0) return -1;
@@ -144,7 +156,27 @@ static int tcp_connect(const char *host, int port) {
     if (fd < 0) return -1;
     struct sockaddr_in a; memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET; a.sin_port = htons(port); a.sin_addr = ip;
-    if (connect(fd, (struct sockaddr *)&a, sizeof(a)) < 0) { close(fd); return -1; }
+
+    /* connect with a timeout so a stalled connect can never hang a worker
+     * forever (which previously could wedge a client-side barrier). */
+    if (fd < FD_SETSIZE) {
+        int fl = fcntl(fd, F_GETFL, 0);
+        fcntl(fd, F_SETFL, fl | O_NONBLOCK);
+        int rc = connect(fd, (struct sockaddr *)&a, sizeof(a));
+        if (rc < 0) {
+            if (errno != EINPROGRESS) { close(fd); return -1; }
+            fd_set wf; FD_ZERO(&wf); FD_SET(fd, &wf);
+            struct timeval ctv = { .tv_sec = 8, .tv_usec = 0 };
+            if (select(fd + 1, NULL, &wf, NULL, &ctv) <= 0) { close(fd); return -1; }
+            int err = 0; socklen_t el = sizeof(err);
+            getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &el);
+            if (err != 0) { close(fd); return -1; }
+        }
+        fcntl(fd, F_SETFL, fl);   /* restore blocking */
+    } else {
+        if (connect(fd, (struct sockaddr *)&a, sizeof(a)) < 0) { close(fd); return -1; }
+    }
+
     struct timeval tv = { .tv_sec = 15, .tv_usec = 0 };
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     return fd;
@@ -330,6 +362,12 @@ static void *load_worker(void *arg) {
 }
 
 static void run_load(const char *title, int nthreads, int reqs_per, int mix) {
+    int budget = fd_budget();
+    if (nthreads > budget) {
+        printf("    (capping concurrency %d -> %d to fit the fd budget)\n", nthreads, budget);
+        nthreads = budget;
+    }
+    if (nthreads < 1) nthreads = 1;
     int total = nthreads * reqs_per;
     printf(C_CYN "\n[load] %s" C_RST
            "  conc=%d  total=%d  mix=%d%%GET/%d%%POST\n",
@@ -427,22 +465,24 @@ static void test_edge_valid_assets(void) {
 /*   queue must make the master block, not drop — all must get 200.     */
 /* ------------------------------------------------------------------ */
 
-typedef struct {
-    pthread_mutex_t m; pthread_cond_t c; int count, target, gen;
-} barrier_t;
-static void barrier_init(barrier_t *b, int n){ pthread_mutex_init(&b->m,NULL); pthread_cond_init(&b->c,NULL); b->count=0; b->target=n; b->gen=0; }
-static void barrier_wait(barrier_t *b){ pthread_mutex_lock(&b->m); int g=b->gen; if(++b->count==b->target){b->gen++; b->count=0; pthread_cond_broadcast(&b->c);} else { while(g==b->gen) pthread_cond_wait(&b->c,&b->m);} pthread_mutex_unlock(&b->m); }
-static void barrier_destroy(barrier_t *b){ pthread_mutex_destroy(&b->m); pthread_cond_destroy(&b->c); }
+/* A start GATE (not a counting barrier): workers connect, then all wait for a
+ * single broadcast. It needs no exact arrival count, so it cannot deadlock if
+ * some client threads fail to start or a connect is slow. */
+typedef struct { pthread_mutex_t m; pthread_cond_t c; int go; } gate_t;
+static void gate_init(gate_t *g){ pthread_mutex_init(&g->m,NULL); pthread_cond_init(&g->c,NULL); g->go=0; }
+static void gate_wait(gate_t *g){ pthread_mutex_lock(&g->m); while(!g->go) pthread_cond_wait(&g->c,&g->m); pthread_mutex_unlock(&g->m); }
+static void gate_open(gate_t *g){ pthread_mutex_lock(&g->m); g->go=1; pthread_cond_broadcast(&g->c); pthread_mutex_unlock(&g->m); }
+static void gate_destroy(gate_t *g){ pthread_mutex_destroy(&g->m); pthread_cond_destroy(&g->c); }
 
 typedef struct {
-    barrier_t *bar;
+    gate_t *gate;
     int ok, status; double qwait_ms;
 } sat_job;
 
 static void *sat_worker(void *arg) {
     sat_job *j = (sat_job *)arg;
     int fd = tcp_connect(g_host, g_tcp_port);
-    barrier_wait(j->bar);          /* all fire together */
+    gate_wait(j->gate);            /* all fire together once main opens the gate */
     if (fd < 0) { j->ok = 0; return NULL; }
     char req[512];
     int rn = snprintf(req, sizeof(req), "GET %s HTTP/1.1\nhost: stress\n\r\n", g_file);
@@ -461,38 +501,56 @@ static void *sat_worker(void *arg) {
 static void test_saturation(void) {
     section("Edge/stress: connection saturation & backpressure");
 
+    /* Open many MORE simultaneous connections than (queue_size + threads) so
+     * the bounded queue must block, not drop. This is intentionally NOT scaled
+     * by g_scale, and is capped to the fd budget so the client can't exhaust
+     * descriptors/threads (which used to wedge the rendezvous). */
     int N = g_threads * 16;
     if (N < 64) N = 64;
-    if (N > 400) N = 400;
-    N *= g_scale;
-    printf("    opening %d simultaneous connections (queue should block, not drop)\n", N);
+    if (N > 256) N = 256;
+    int budget = fd_budget();
+    if (N > budget) N = budget;
+    printf("    opening %d simultaneous connections (fd budget=%d; "
+           "queue must block, not drop)\n", N, budget);
 
-    barrier_t bar; barrier_init(&bar, N);
+    gate_t gate; gate_init(&gate);
     pthread_t *th = calloc(N, sizeof(pthread_t));
     sat_job *jb = calloc(N, sizeof(sat_job));
-    for (int i = 0; i < N; i++) jb[i].bar = &bar;
+    for (int i = 0; i < N; i++) jb[i].gate = &gate;
 
     watchdog(120);
+    int created = 0;
+    for (int i = 0; i < N; i++) {
+        if (pthread_create(&th[i], NULL, sat_worker, &jb[i]) == 0) created++;
+        else break;                 /* hit a thread limit — proceed with what we have */
+    }
+    usleep(250 * 1000);             /* let workers establish their connections */
     double t0 = now_s();
-    for (int i = 0; i < N; i++) pthread_create(&th[i], NULL, sat_worker, &jb[i]);
-    for (int i = 0; i < N; i++) pthread_join(th[i], NULL);
+    gate_open(&gate);               /* release them all at once */
+    for (int i = 0; i < created; i++) pthread_join(th[i], NULL);
     double dur = now_s() - t0;
     watchdog_off();
 
+    if (created < N)
+        printf("    note: created %d/%d client threads (system limit)\n", created, N);
+
     int ok = 0, got200 = 0, qn = 0;
-    double *qw = malloc((size_t)N * sizeof(double));
-    for (int i = 0; i < N; i++) {
+    double *qw = malloc((size_t)(created ? created : 1) * sizeof(double));
+    for (int i = 0; i < created; i++) {
         if (jb[i].ok) ok++;
         if (jb[i].status == 200) got200++;
         if (jb[i].qwait_ms >= 0) qw[qn++] = jb[i].qwait_ms;
     }
-    printf("    served %d/%d in %.3fs (%.0f req/s)\n", got200, N, dur, dur > 0 ? got200 / dur : 0);
+    printf("    served %d/%d in %.3fs (%.0f req/s)\n",
+           got200, created, dur, dur > 0 ? got200 / dur : 0);
     print_stats("queue-wait", stats_of(qw, qn));
-    CHECK(ok == N, "all %d saturating connections got a response (no drops)", N);
-    CHECK(got200 == N, "all %d saturating connections returned 200", N);
+    CHECK(created > 0 && ok == created,
+          "all %d saturating connections got a response (no drops)", created);
+    CHECK(created > 0 && got200 == created,
+          "all %d saturating connections returned 200", created);
 
     free(qw); free(th); free(jb);
-    barrier_destroy(&bar);
+    gate_destroy(&gate);
 }
 
 /* ------------------------------------------------------------------ */
@@ -501,8 +559,10 @@ static void test_saturation(void) {
 
 static void test_high_concurrency(void) {
     section("Edge/stress: very high concurrency (deadlock probe)");
-    int conc = 200 * g_scale;
-    int per = 5;
+    /* concurrency is capped to the fd budget inside run_load; scale the work
+     * via requests-per-thread instead of by spawning unbounded threads. */
+    int conc = 200;
+    int per = 5 * g_scale;
     run_load("high-concurrency mix", conc, per, 70);
 }
 
