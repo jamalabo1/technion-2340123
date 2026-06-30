@@ -33,6 +33,7 @@ typedef struct thread_ctx thread_ctx_t;
 void _thread_handle_udp(rqueue_request_data_t *data, threads_stats *thread_stats) {
     // format response
     char buf[MAXLINE];
+    buf[0] = '\0'; // start with 0
 
     // use the already there function
     int resp_size = append_thread_log(buf, *thread_stats);
@@ -64,7 +65,6 @@ void *processor_entry(void *thread_ctx_p) {
             rqueue_is_empty(thread_ctx->rqueue) &&
             rqueue_is_empty(thread_ctx->udp_rqueue)
         ) {
-        label_sleep:
             // then wait until not empty
             Pthread_cond_wait(&has_requests, &requests_q_mutex);
         }
@@ -146,7 +146,13 @@ void *processor_entry(void *thread_ctx_p) {
             requestHandle(conndata.connfd, dum, t, thread_ctx->log);
 
             Close(conndata.connfd); // Close the connection
+
+            // and when I finish i'll return the virtual slot
+            commit(thread_ctx->rqueue);
         }
+
+
+
     }
 
 
@@ -198,7 +204,7 @@ int main(int argc, char *argv[]) {
     int udp_port = atoi(argv[2]);
     int threads_count = atoi(argv[3]);
     int queue_size = atoi(argv[4]);
-    int debug_sleep_time = atoi(argv[5]);
+    int debug_sleep_time = atof(argv[5]);
 
     if (tcp_port <= 1024) {
         app_error("tcp port must be above 1024");

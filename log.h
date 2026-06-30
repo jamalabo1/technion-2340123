@@ -21,9 +21,9 @@ void destroy_log(server_log log);
 
 // Returns the log contents as a string (null-terminated)
 // NOTE: caller is responsible for freeing dst
-int get_log(server_log log, char** dst, time_stats tm_stats);
+int get_log(server_log log, char** dst, time_stats* tm_stats);
 
 // Appends a new entry to the log
-void add_to_log(server_log log, time_stats tm_stats,  threads_stats t_stats);
+void add_to_log(server_log log, time_stats* tm_stats,  threads_stats t_stats);
 
 #endif // SERVER_LOG_H

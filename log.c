@@ -45,6 +45,8 @@ struct Server_Log {
     log_entry_p head;
     log_entry_p last;
     long entries_length;
+
+    int debug_sleep_time;
 };
 
 // Creates a new server log instance (stub)
@@ -69,10 +71,13 @@ server_log create_log(int debug_sleep_time) {
     log_inst->head = Malloc(sizeof(log_entry));
     log_inst->head->len = 0;
     log_inst->head->next = NULL;
+    log_inst->head->data = NULL;
 
     log_inst->last = log_inst->head;
 
     log_inst->entries_length = 0;
+
+    log_inst->debug_sleep_time = debug_sleep_time;
 
     return log_inst;
 }
@@ -85,6 +90,14 @@ void destroy_log(server_log log) {
     Pthread_mutex_destroy(&log->wc_mutex);
     Pthread_cond_destroy(&log->gate_cond);
 
+    log_entry_p head = log->head;
+    while (head != NULL) {
+        log_entry_p next = head->next;
+        free(head->data);
+        free(head);
+        head = next;
+    }
+
     free(log);
 }
 
@@ -92,12 +105,17 @@ void destroy_log(server_log log) {
 long _protected_read(server_log log, char * *dst) {
     // ok we are given a ref to the buffer var
     // at that place, we need to create the buffer
-    char *data_ptr = (char *) Malloc(log->entries_length * sizeof(char));
+    char *data_ptr = (char *) Malloc((log->entries_length+1) * sizeof(char));
 
     int i = 0;
     log_entry_p current = log->head;
 
     while (current != NULL) {
+        if (current->len== 0) {
+            // skip
+            current = current->next;
+            continue;
+        }
         // after skipping i bytes, write data of length len
         memcpy(data_ptr + i, current->data, current->len);
 
@@ -105,6 +123,9 @@ long _protected_read(server_log log, char * *dst) {
         i += current->len;
         current = current->next;
     }
+
+    // then null-terminate
+    data_ptr[i] = '\0';
 
     // now give them the place were the data lives
     *dst = data_ptr;
@@ -141,13 +162,14 @@ long _protected_read(server_log log, char * *dst) {
 //     log->entries_length += data_len;
 // }
 
-void _protected_write(server_log log, time_stats tm_stats, threads_stats t_stats) {
+void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stats) {
     log_entry_p entry = Malloc( sizeof(log_entry));
 
     entry->data = Malloc((MAXLINE + 1) * sizeof(char));
+    entry->data[0] = '\0'; // start empty
 
     // use already there function
-    int data_len = append_stats(entry->data, t_stats, tm_stats);
+    int data_len = append_stats(entry->data, t_stats, *tm_stats);
     data_len += sprintf(entry->data + data_len, "#");
 
     // set
@@ -159,12 +181,13 @@ void _protected_write(server_log log, time_stats tm_stats, threads_stats t_stats
     // we are the new last
     log->last = entry;
 
+    // including null terminator?
     log->entries_length += data_len;
 }
 
 
 // Returns dummy log content as string (stub)
-int get_log(server_log log, char **dst, time_stats tm_stats) {
+int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // if you come before the writer, I will not preempt you. but you need to let the writer know you reading:
     // but to allow multiple readers, we only hold the writer if the room is empty
 
@@ -189,18 +212,24 @@ int get_log(server_log log, char **dst, time_stats tm_stats) {
     // and when I wake up i'll have the wc mutex so it's ok.
 
 
+    // before requesting the lock
+    tm_stats->log_enter = the_time();
+
     // if nobody is writing, then I can proceed. but first let me aquire the readers lock
     LOCK(rc_mutex);
 
     // register myself
     log->readers_count++;
 
-    // must be here for every reader, because now they arrived
-    tm_stats.log_enter = the_time();
 
     if (log->readers_count == 1) {
         // if im the first reader let me open the door for others
         Sem_wait(&log->log_sem);
+    }
+
+    // if has debug time, then sleep with the lock and do it after log sem to also lock out writers.
+    if (log->debug_sleep_time > 0) {
+        sleep(log->debug_sleep_time);
     }
 
     // give the read mutex
@@ -211,7 +240,7 @@ int get_log(server_log log, char **dst, time_stats tm_stats) {
 
 
     // before reading
-    tm_stats.log_exit = the_time();
+    tm_stats->log_exit = the_time();
 
     int len = _protected_read(log, dst);
 
@@ -233,7 +262,7 @@ int get_log(server_log log, char **dst, time_stats tm_stats) {
 
 
 // Appends a new entry to the log (no-op stub)
-void add_to_log(server_log log, time_stats tm_stats, threads_stats t_stats) {
+void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
     // atomic increase to break the mutex fariness
     atomic_inc(&log->writer_arrived);
 
@@ -244,14 +273,18 @@ void add_to_log(server_log log, time_stats tm_stats, threads_stats t_stats) {
     UNLOCK(wc_mutex);
 
 
-    // before aquiring the lock
-    tm_stats.log_enter = the_time();
+    // before acquiring the lock
+    tm_stats->log_enter = the_time();
 
     // now wait for the already there readers to finish and block other writers.
     Sem_wait(&log->log_sem);
 
+    if (log->debug_sleep_time > 0) {
+        sleep(log->debug_sleep_time);
+    }
+
     // we aquired the lock
-    tm_stats.log_exit = the_time();
+    tm_stats->log_exit = the_time();
 
     _protected_write(log, tm_stats, t_stats);
 

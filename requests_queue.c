@@ -63,12 +63,16 @@ rqueue_request_data_t rqueue_pop(rqueue_t *queue) {
     // then free
     free(head);
 
+    return data;
+}
+
+// this is saying I want to return a slot.
+// I took an element and I want to return the virtual slot. this enforces pending + current <= size
+void commit(rqueue_t* queue) {
     if (queue->is_bounded) {
         // now after we took a slot out, we freed one of the virtual slots so we do
         Sem_post(&queue->capacity_sem);
     }
-
-    return data;
 }
 
 

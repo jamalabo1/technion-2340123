@@ -123,13 +123,6 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
 
 
     if (strcasecmp(method, "GET") == 0) {
-
-
-        // we are about to enter the log
-        add_to_log(log, tm_stats, t_stats);
-
-
-
         requestReadhdrs(&rio);
         is_static = requestParseURI(uri, filename, cgiargs);
 
@@ -153,6 +146,9 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
             // thread safe, and valid here
             t_stats->stat_req++;
 
+            //a valid static request, add to log
+            add_to_log(log, &tm_stats, t_stats);
+
             // Fixed Content-Length format string and sprintf overlap
             sprintf(resp_headers, "HTTP/1.0 200 OK\r\n");
             sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
@@ -164,17 +160,23 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
                              t_stats);
                 return;
             }
-            body_content = requestPrepareDynamic(filename, cgiargs, &body_len);
 
             // dynamic request
             t_stats->dynm_req++;
+
+            //a valid dynamic request, add to log
+            add_to_log(log, &tm_stats, t_stats);
+
+
+            body_content = requestPrepareDynamic(filename, cgiargs, &body_len);
+
 
             sprintf(resp_headers, "HTTP/1.0 200 OK\r\n");
             sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
         }
     } else if (strcasecmp(method, "POST") == 0) {
         // we are about to enter the log
-        body_len = get_log(log, (char **) &body_content, tm_stats);
+        body_len = get_log(log, (char **) &body_content, &tm_stats);
 
         // post request
         t_stats->post_req++;
@@ -188,8 +190,6 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
                      t_stats);
         return;
     }
-
-
 
     // --- SEND ---
     int total_header_len = append_stats(resp_headers, t_stats, tm_stats);

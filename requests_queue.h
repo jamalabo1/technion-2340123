@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
 struct RequestData {
     int connfd;
@@ -37,6 +38,8 @@ void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_size);
 short rqueue_is_empty(rqueue_t *queue);
 
 rqueue_request_data_t rqueue_pop(rqueue_t *queue);
+
+void commit(rqueue_t* queue);
 
 void rqueue_append(rqueue_t *queue, rqueue_request_data_t arrival_time);
 
