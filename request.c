@@ -1,38 +1,7 @@
 #include "segel.h"
 #include "request.h"
+#include "formatter.h"
 
-// Appends the per-job (timing) statistics to buf.
-int append_job_log(char *buf, time_stats tm_stats) {
-    int offset = strlen(buf);
-
-    offset += sprintf(buf + offset, "Stat-Req-Arrival:: %ld.%06ld\r\n",
-                      tm_stats.task_arrival.tv_sec, tm_stats.task_arrival.tv_usec);
-    offset += sprintf(buf + offset, "Stat-Req-Dispatch:: %ld.%06ld\r\n",
-                      tm_stats.task_dispatch.tv_sec, tm_stats.task_dispatch.tv_usec);
-    offset += sprintf(buf + offset, "Stat-Log-Arrival:: %ld.%06ld\r\n",
-                      tm_stats.log_enter.tv_sec, tm_stats.log_enter.tv_usec);
-    offset += sprintf(buf + offset, "Stat-Log-Dispatch:: %ld.%06ld\r\n",
-                      tm_stats.log_exit.tv_sec, tm_stats.log_exit.tv_usec);
-    return offset;
-}
-
-// Appends the per-thread statistics to buf.
-int append_thread_log(char *buf, threads_stats t_stats) {
-    int offset = strlen(buf);
-
-    offset += sprintf(buf + offset, "Stat-Thread-Id:: %d\r\n", t_stats->id);
-    offset += sprintf(buf + offset, "Stat-Thread-Count:: %d\r\n", t_stats->total_req);
-    offset += sprintf(buf + offset, "Stat-Thread-Static:: %d\r\n", t_stats->stat_req);
-    offset += sprintf(buf + offset, "Stat-Thread-Dynamic:: %d\r\n", t_stats->dynm_req);
-    offset += sprintf(buf + offset, "Stat-Thread-Post:: %d\r\n\r\n", t_stats->post_req);
-    return offset;
-}
-
-// Appends the full statistics block to an HTTP response header.
-int append_stats(char *buf, threads_stats t_stats, time_stats tm_stats) {
-    append_job_log(buf, tm_stats);
-    return append_thread_log(buf, t_stats);
-}
 
 void requestError(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg, time_stats tm_stats,
                   threads_stats t_stats) {
@@ -113,7 +82,7 @@ char *requestPrepareDynamic(char *filename, char *cgiargs, int *out_len) {
         exit(0);
     }
     Close(p[1]);
-    char *body = malloc(MAXBUF);
+    char *body = Malloc(MAXBUF);
     int total_read = 0, n;
     while ((n = Rio_readn(p[0], body + total_read, MAXBUF - total_read)) > 0) {
         total_read += n;
@@ -126,7 +95,7 @@ char *requestPrepareDynamic(char *filename, char *cgiargs, int *out_len) {
 
 void *requestPrepareStatic(char *filename, int filesize) {
     int srcfd = Open(filename, O_RDONLY, 0);
-    char *body = malloc(filesize);
+    char *body = Malloc(filesize);
     if (body) {
         Rio_readn(srcfd, body, filesize);
     }
@@ -149,16 +118,16 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
     Rio_readlineb(&rio, buf, MAXLINE);
     sscanf(buf, "%s %s %s", method, uri, version);
 
-    // log the request
+    // all in all
+    t_stats->total_req++;
+
 
     if (strcasecmp(method, "GET") == 0) {
-        //TODO: only log get requests?
+
 
         // we are about to enter the log
-        tm_stats.log_enter = the_time();
-        add_to_log(log, buf, strlen(buf));
-        // we are about to exist. TODO: it may well be inside the log itself
-        tm_stats.log_exit = the_time();
+        add_to_log(log, tm_stats, t_stats);
+
 
 
         requestReadhdrs(&rio);
@@ -204,7 +173,8 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
             sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
         }
     } else if (strcasecmp(method, "POST") == 0) {
-        body_len = get_log(log, (char **) &body_content);
+        // we are about to enter the log
+        body_len = get_log(log, (char **) &body_content, tm_stats);
 
         // post request
         t_stats->post_req++;
@@ -219,8 +189,7 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
         return;
     }
 
-    // and all in all
-    t_stats->total_req++;
+
 
     // --- SEND ---
     int total_header_len = append_stats(resp_headers, t_stats, tm_stats);

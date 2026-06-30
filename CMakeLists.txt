@@ -14,14 +14,15 @@ add_executable(server
         segel.c
         log.c
         requests_queue.c
-        requests_queue.h
+        formatter.c
+        stats.h
 )
 
 target_link_libraries(server PRIVATE Threads::Threads)
 
 add_executable(client
         client.c
-        segel.c
+
 )
 
 add_executable(output_cgi

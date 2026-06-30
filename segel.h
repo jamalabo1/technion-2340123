@@ -121,6 +121,31 @@ void dns_error(char *msg);
 void app_error(char *msg);
 
 
+/*
+ * Pthread
+ */
+void Pthread_mutex_init(pthread_mutex_t* mutex);
+void Pthread_mutex_lock(pthread_mutex_t* mutex);
+void Pthread_mutex_unlock(pthread_mutex_t* mutex);
+void Pthread_cond_init(pthread_cond_t* cond);
+void Pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+void Pthread_cond_broadcast(pthread_cond_t* cond);
+void Pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                    void *(*start_routine)(void *), void *arg);
+
+
+void Pthread_mutex_destroy( pthread_mutex_t* mutex);
+void Pthread_cond_destroy(pthread_cond_t* cond);
+
+/*
+ * Semaphore
+ */
+void Sem_wait(sem_t* sem);
+void Sem_post(sem_t* sem);
+void Sem_init(sem_t* sem, int pshared, unsigned int value);
+void Sem_destroy(sem_t* sem);
+
+
 /* Process control wrappers */
 pid_t Fork(void);
 void Execve(const char *filename, char *const argv[], char *const envp[]);
@@ -145,6 +170,8 @@ void Fstat(int fd, struct stat *buf) ;
 /* Memory mapping wrappers */
 void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
 void Munmap(void *start, size_t length);
+void *Malloc(size_t size);
+
 
 /* Sockets interface wrappers */
 int Socket(int domain, int type, int protocol);

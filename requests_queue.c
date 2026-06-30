@@ -1,12 +1,12 @@
 //
 // Created by jamal on 26/06/2026.
 //
+
 #include "requests_queue.h"
+#include "segel.h"
 
-#include <stdlib.h>
-
-#define QUEUE_LOCK pthread_mutex_lock(queue->mutex);
-#define QUEUE_UNLOCK pthread_mutex_unlock(queue->mutex);
+#define QUEUE_LOCK Pthread_mutex_lock(queue->mutex);
+#define QUEUE_UNLOCK Pthread_mutex_unlock(queue->mutex);
 
 struct RequestsQueue {
     rqueue_request_t *head;
@@ -15,7 +15,8 @@ struct RequestsQueue {
     pthread_mutex_t *mutex;
     sem_t capacity_sem;
 
-    short check_capacity;
+    // is bounded (udp or tcp queue)?
+    short is_bounded;
 };
 
 short rqueue_is_empty(rqueue_t *queue) {
@@ -25,7 +26,7 @@ short rqueue_is_empty(rqueue_t *queue) {
 }
 
 rqueue_p rqueue_create() {
-    return malloc(sizeof(rqueue_t));
+    return Malloc(sizeof(rqueue_t));
 }
 
 void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
@@ -34,21 +35,21 @@ void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
     queue->mutex = mutex;
 
     if (queue_capacity > 0) {
-        sem_init(&queue->capacity_sem, 0, queue_capacity);
-        queue->check_capacity = 1;
+        Sem_init(&queue->capacity_sem, 0, queue_capacity);
+        queue->is_bounded = 1;
     } else {
-        queue->check_capacity = 0;
+        queue->is_bounded = 0;
     }
 }
 
 
 rqueue_request_data_t rqueue_pop(rqueue_t *queue) {
     rqueue_request_t *head = queue->head;
-    // this shouldn't be generaly the case
-    // since threads have a cond var on is_queue_empty, but i'll keep it.
-    if (head == NULL) {
-        return;
-    }
+    // this shouldn't be the case
+    // since threads have a cond var on is_queue_empty
+    // if (head == NULL) {
+    //     return;
+    // }
 
     // copy it, I mean why not?
     rqueue_request_data_t data = head->data;
@@ -62,9 +63,9 @@ rqueue_request_data_t rqueue_pop(rqueue_t *queue) {
     // then free
     free(head);
 
-    if (queue->check_capacity) {
-        // now after we took a slot out, we freed one of the virtual splots so we do
-        sem_post(&queue->capacity_sem);
+    if (queue->is_bounded) {
+        // now after we took a slot out, we freed one of the virtual slots so we do
+        Sem_post(&queue->capacity_sem);
     }
 
     return data;
@@ -74,22 +75,19 @@ rqueue_request_data_t rqueue_pop(rqueue_t *queue) {
 // temp on the condition mutex is achieved.
 // later mutex is moved here....
 void rqueue_append(rqueue_t *queue, rqueue_request_data_t data) {
-    if (queue->check_capacity) {
+    if (queue->is_bounded) {
         // can we aquire a virtual slot ? if so then insert otherwise wait for somebody to free.
-        sem_wait(&queue->capacity_sem);
+        Sem_wait(&queue->capacity_sem);
     }
 
     // then aquire the readers mutex
     QUEUE_LOCK
 
 
-    //TODO: handle failing mallocs.
-    rqueue_request_t *request = malloc(sizeof(rqueue_request_t));
+    rqueue_request_t *request = Malloc(sizeof(rqueue_request_t));
 
     // already copied
     request->data = data;
-
-
     request->next = NULL;
 
     rqueue_request_t *current_last = queue->last;

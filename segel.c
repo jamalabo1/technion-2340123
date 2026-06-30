@@ -85,6 +85,88 @@ pid_t WaitPid(pid_t pid, int *status, int options) {
 }
 
 
+/**
+ *
+ *  Pthreads
+ */
+
+void Pthread_mutex_init(pthread_mutex_t *mutex) {
+    if (pthread_mutex_init(mutex, NULL) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_mutex_lock(pthread_mutex_t *mutex) {
+    if (pthread_mutex_lock(mutex) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_mutex_unlock(pthread_mutex_t *mutex) {
+    if (pthread_mutex_unlock(mutex) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_cond_init(pthread_cond_t *cond) {
+    if (pthread_cond_init(cond, NULL) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
+    if (pthread_cond_wait(cond, mutex) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_cond_broadcast(pthread_cond_t *cond) {
+    if (pthread_cond_broadcast(cond) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_mutex_destroy(pthread_mutex_t *mutex) {
+    if (pthread_mutex_destroy(mutex) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_cond_destroy(pthread_cond_t *cond) {
+    if (pthread_cond_destroy(cond) != 0)
+        unix_error("pthread error");
+}
+
+void Pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                    void *(*start_routine)(void *), void *arg) {
+    int rc = pthread_create(thread, attr, start_routine, arg);
+    if (rc != 0) {
+        unix_error("pthread error");
+    }
+}
+
+
+/*
+ * Semaphores
+ */
+void Sem_wait(sem_t *sem) {
+    if (sem_wait(sem) != 0) {
+        unix_error("semaphore error");
+    }
+}
+
+void Sem_post(sem_t *sem) {
+    if (sem_post(sem) != 0) {
+        unix_error("semaphore error");
+    }
+}
+
+void Sem_init(sem_t *sem, int pshared, unsigned int value) {
+    if (sem_init(sem, pshared, value) != 0) {
+        unix_error("semaphore error");
+    }
+}
+
+void Sem_destroy(sem_t *sem) {
+    if (sem_destroy(sem) != 0) {
+        unix_error("semaphore error");
+    }
+}
+
+
 /* $end wait */
 
 /********************************
@@ -172,6 +254,16 @@ void Munmap(void *start, size_t length) {
     if (munmap(start, length) < 0)
         unix_error("munmap error");
 }
+
+void *Malloc(size_t size) {
+    void *ptr = malloc(size);
+    if (ptr == NULL) {
+        unix_error("malloc error");
+    }
+
+    return ptr;
+}
+
 
 /****************************
  * Sockets interface wrappers
