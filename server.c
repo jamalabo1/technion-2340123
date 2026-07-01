@@ -25,6 +25,9 @@ struct thread_ctx {
     /* services */
     server_log log;
     rqueue_t *rqueue;
+
+    // signal
+    int signal_fd;
 };
 
 typedef struct thread_ctx thread_ctx_t;
@@ -132,6 +135,7 @@ void *processor_entry(void *thread_ctx_p) {
             current_udp_node = nextNode;
         }
 
+        // sleep(10);
 
         // if there is a tcp
         if (has_tcp) {
@@ -149,8 +153,13 @@ void *processor_entry(void *thread_ctx_p) {
 
             // and when I finish i'll return the virtual slot
             commit(thread_ctx->rqueue);
-        }
 
+            // if was full, I finished proccessing something so let the main thread know
+            // if (rqueue_is_full_safe(thread_ctx->rqueue)) {
+                char signal = 1;
+                Write(thread_ctx->signal_fd, &signal, 1);
+            // }
+        }
 
 
     }
@@ -160,7 +169,7 @@ void *processor_entry(void *thread_ctx_p) {
 }
 
 
-thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_count) {
+thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_count, int signal_fd) {
     // array of thread ctxs.
     thread_ctx_t **threads = Malloc(thread_count * sizeof(thread_ctx_t *));
 
@@ -176,9 +185,10 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_coun
         thread_ctx->udp_rqueue = udp_rqueue;
 
         // set the ctx fields
+        thread_ctx->id = i + 1;
         thread_ctx->rqueue = queue;
         thread_ctx->log = log;
-        thread_ctx->id = i + 1;
+        thread_ctx->signal_fd = signal_fd;
 
         // we need to create a thread and add it to the pool
         pthread_t thread_id;
@@ -190,7 +200,9 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_coun
     return threads;
 }
 
-
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
 
 int main(int argc, char *argv[]) {
     // if weired print stuff happens it's because of fucking buffering
@@ -237,14 +249,21 @@ int main(int argc, char *argv[]) {
     rqueue_init(rqueue, &requests_q_mutex, queue_size);
 
 
+    // wake signal pipe
+    int cap_pipe[2];
+    pipe(cap_pipe);
+    //TODO: check error
+
     // init threads with ctx
-    thread_ctx_t **threads = init_threads_pool(log, rqueue, threads_count);
+    thread_ctx_t **threads = init_threads_pool(log, rqueue, threads_count, cap_pipe[1]);
 
 
     struct sockaddr_in clientaddr;
     int clientlen;
 
-    int maxFD = ((listenfd > udpsd) ? listenfd : udpsd) + 1;
+
+    // we also need to listen to what threads have to say
+    int maxFD = max(max(listenfd, udpsd), cap_pipe[0]) + 1;
 
     // this is not busy waiting rather the server is active
     while (1) {
@@ -255,14 +274,15 @@ int main(int argc, char *argv[]) {
         // if the tcp queue is full, then dont ask the kernel for tcp requests
         // since it might block us when getting to the queue append
         if (!rqueue_is_full_safe(rqueue)) {
-        // we want the tcp fd
+            // we want the tcp fd
             FD_SET(listenfd, &readfds);
         }
 
-
-        FD_SET(udpsd, &readfds);
         // or the udpfd
+        FD_SET(udpsd, &readfds);
 
+        // and the cacpity signal, no need to do any processing it's just to free the select
+        FD_SET(cap_pipe[0], &readfds);
 
         // who to read first?
         Select(

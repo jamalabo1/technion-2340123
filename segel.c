@@ -165,6 +165,12 @@ void Sem_destroy(sem_t *sem) {
         unix_error("semaphore error");
     }
 }
+void Sem_getvalue(sem_t *sem, int* val) {
+    if (sem_getvalue(sem, val) != 0) {
+        unix_error("semaphore error");
+    }
+}
+
 
 
 /* $end wait */

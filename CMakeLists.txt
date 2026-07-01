@@ -22,8 +22,9 @@ target_link_libraries(server PRIVATE Threads::Threads)
 
 add_executable(client
         client.c
-
+        segel.c
 )
+target_link_libraries(client PRIVATE Threads::Threads)
 
 add_executable(output_cgi
         output.c

@@ -17,8 +17,7 @@
 #include "segel.h"
 
 // Sends an HTTP request to the server using the given socket
-void clientSend(int fd, char *filename, char* method)
-{
+void clientSend(int fd, char *filename, char *method) {
     char buf[MAXLINE];
     char hostname[MAXLINE];
 
@@ -35,8 +34,7 @@ void clientSend(int fd, char *filename, char* method)
 }
 
 // Reads and prints the server's HTTP response
-void clientPrint(int fd)
-{
+void clientPrint(int fd) {
     rio_t rio;
     char buf[MAXBUF];
     int length = 0;
@@ -66,38 +64,63 @@ void clientPrint(int fd)
     }
 }
 
-int main(int argc, char *argv[])
-{
+struct request {
     char *host, *filename, *method;
     int port;
     int clientfd;
+};
 
-    // Validate input arguments
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <host> <port> <filename> <method>\n", argv[0]);
-        exit(1);
-    }
-
-    // Parse command-line arguments
-    host = argv[1];
-    port = atoi(argv[2]);
-    filename = argv[3];
-    method = argv[4];
+void do_request(void *req_p) {
+    struct request *req = req_p;
 
     // Open a connection to the specified server
-    clientfd = Open_clientfd(host, port);
+    int clientfd = Open_clientfd(req->host, req->port);
     if (clientfd < 0) {
-        fprintf(stderr, "Error connecting to %s:%d\n", host, port);
+        fprintf(stderr, "Error connecting to %s:%d\n", req->host, req->port);
         exit(1);
     }
 
     printf("Connected to server. clientfd = %d\n", clientfd);
 
     // Send HTTP request and read response
-    clientSend(clientfd, filename, method);
+    clientSend(clientfd, req->filename, req->method);
     clientPrint(clientfd);
 
     // Clean up
     Close(clientfd);
+}
+
+
+int main(int argc, char *argv[]) {
+    // Validate input arguments
+    if (argc != 5) {
+        fprintf(stderr, "Usage: %s <host> <port> <filename> <method>\n", argv[0]);
+        exit(1);
+    }
+
+    struct request *req = malloc(sizeof(struct request));
+
+    // Parse command-line arguments
+    req->host = argv[1];
+    req->port = atoi(argv[2]);
+    req->filename = argv[3];
+    req->method = argv[4];
+
+#define NUM_REQ 10
+
+    pthread_t threads[NUM_REQ];
+
+    for (int i = 0; i < NUM_REQ; i++) {
+        pthread_t tid;
+
+        pthread_create(&tid, NULL, do_request, req);
+
+        threads[i] = tid;
+    }
+
+    for (int i = 0; i < NUM_REQ; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
     return 0;
 }

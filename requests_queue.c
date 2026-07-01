@@ -78,10 +78,10 @@ void commit(rqueue_t* queue) {
 short rqueue_is_full_safe(rqueue_t *queue) {
     int val;
 
-    sem_getvalue(&queue->capacity_sem, &val);
+    Sem_getvalue(&queue->capacity_sem, &val);
 
     // if the value is 0, then it's full, otherwise not.
-    return !val;
+    return val == 0;
 }
 
 

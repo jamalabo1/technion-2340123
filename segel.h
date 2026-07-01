@@ -144,6 +144,7 @@ void Sem_wait(sem_t* sem);
 void Sem_post(sem_t* sem);
 void Sem_init(sem_t* sem, int pshared, unsigned int value);
 void Sem_destroy(sem_t* sem);
+void Sem_getvalue(sem_t *sem, int* val);
 
 
 /* Process control wrappers */
