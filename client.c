@@ -6,7 +6,7 @@
  *
  * This client sends a single HTTP request to a server and prints the response.
  *
- * HW3: For testing your server, you will likely want to modify this client:
+ * HW3: For testing2 your server, you will likely want to modify this client:
  *  - Add multi-threading support to test concurrency.
  *  - Add ability to send different request types and URIs.
  *  - Consider reading URIs or request data from a file or stdin.

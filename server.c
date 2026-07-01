@@ -46,7 +46,7 @@ void _thread_handle_udp(rqueue_request_data_t *data, threads_stats *thread_stats
 void *processor_entry(void *thread_ctx_p) {
     thread_ctx_t *thread_ctx = thread_ctx_p;
 
-    // this is literily thread safe since it's per-thread structure
+    // this is literally thread safe since it's per-thread structure
     threads_stats t = Malloc(sizeof(struct Threads_stats));
     t->id = thread_ctx->id; // Thread ID (placeholder)
 
@@ -57,7 +57,7 @@ void *processor_entry(void *thread_ctx_p) {
 
     // not busy waiting but it means the thread is active
     while (1) {
-        // attempt to aquire the lock
+        // attempt to acquire the lock
         Pthread_mutex_lock(&requests_q_mutex);
 
         // IMPORTANT: both queues depend on this lock, so it's safe to check both on it
@@ -191,6 +191,7 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_coun
 }
 
 
+
 int main(int argc, char *argv[]) {
     // if weired print stuff happens it's because of fucking buffering
     // setbuf(stdout, NULL);
@@ -204,7 +205,7 @@ int main(int argc, char *argv[]) {
     int udp_port = atoi(argv[2]);
     int threads_count = atoi(argv[3]);
     int queue_size = atoi(argv[4]);
-    int debug_sleep_time = atof(argv[5]);
+    double debug_sleep_time = atof(argv[5]);
 
     if (tcp_port <= 1024) {
         app_error("tcp port must be above 1024");
@@ -251,8 +252,14 @@ int main(int argc, char *argv[]) {
         fd_set readfds;
         FD_ZERO(&readfds);
 
+        // if the tcp queue is full, then dont ask the kernel for tcp requests
+        // since it might block us when getting to the queue append
+        if (!rqueue_is_full_safe(rqueue)) {
         // we want the tcp fd
-        FD_SET(listenfd, &readfds);
+            FD_SET(listenfd, &readfds);
+        }
+
+
         FD_SET(udpsd, &readfds);
         // or the udpfd
 
@@ -301,7 +308,7 @@ int main(int argc, char *argv[]) {
             thread_ctx_t *thread_ctx = threads[threadId - 1];
 
             // the queue itself does aquire the lock
-            rqueue_append(thread_ctx->udp_rqueue, data);
+            rqueue_append_safe(thread_ctx->udp_rqueue, data);
         }
 
         // if tcp is ready (it's math OR not XOR)
@@ -321,7 +328,7 @@ int main(int argc, char *argv[]) {
 
             // wait (thread blocking no busy wait) until the queue is not full, it internally uses sempahores
             // append is thread safe since it internally uses locks
-            rqueue_append(rqueue, data);
+            rqueue_append_safe(rqueue, data);
         }
 
         // then we tell everybody the state changed

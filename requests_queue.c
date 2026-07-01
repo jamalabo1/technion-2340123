@@ -75,16 +75,25 @@ void commit(rqueue_t* queue) {
     }
 }
 
+short rqueue_is_full_safe(rqueue_t *queue) {
+    int val;
+
+    sem_getvalue(&queue->capacity_sem, &val);
+
+    // if the value is 0, then it's full, otherwise not.
+    return !val;
+}
+
 
 // temp on the condition mutex is achieved.
 // later mutex is moved here....
-void rqueue_append(rqueue_t *queue, rqueue_request_data_t data) {
+void rqueue_append_safe(rqueue_t *queue, rqueue_request_data_t data) {
     if (queue->is_bounded) {
         // can we aquire a virtual slot ? if so then insert otherwise wait for somebody to free.
         Sem_wait(&queue->capacity_sem);
     }
 
-    // then aquire the readers mutex
+    // then acquire the readers mutex
     QUEUE_LOCK
 
 

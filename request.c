@@ -175,6 +175,10 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
             sprintf(resp_headers + strlen(resp_headers), "Server: OS-HW3 Web Server\r\n");
         }
     } else if (strcasecmp(method, "POST") == 0) {
+
+        // a valid post request, add to log, and before we receive the log to include itself
+        add_to_log(log, &tm_stats, t_stats);
+
         // we are about to enter the log
         body_len = get_log(log, (char **) &body_content, &tm_stats);
 

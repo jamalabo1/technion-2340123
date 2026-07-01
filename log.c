@@ -46,11 +46,11 @@ struct Server_Log {
     log_entry_p last;
     long entries_length;
 
-    int debug_sleep_time;
+    double debug_sleep_time;
 };
 
 // Creates a new server log instance (stub)
-server_log create_log(int debug_sleep_time) {
+server_log create_log(double debug_sleep_time) {
     server_log log_inst = (server_log) Malloc(sizeof(struct Server_Log));
     log_inst->readers_count = 0;
     log_inst->writers_count = 0;
@@ -191,6 +191,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // if you come before the writer, I will not preempt you. but you need to let the writer know you reading:
     // but to allow multiple readers, we only hold the writer if the room is empty
 
+
     LOCK(wc_mutex);
     // I cannot enter, so I need a cond lock
     // if the gate is closed, I cannot enter it must be open
@@ -206,16 +207,16 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     }
     // so the story goes:
     // the os gives the reader wc_mutex, the problem with just checking writer count, is that there might be a writer waiting for the lock
-    // to register itself, but since the os operates on fairness, it has to wait for all the readers to aquire the lock, so we need
+    // to register itself, but since the os operates on fairness, it has to wait for all the readers to acquire the lock, so we need
     // an asymmetrical way of giving the writer a bias, so we use an atomic writer_arrived, which is best effort asking "Am I blocking any writer?"
     // if so then willingly go to sleep (cond wait) and clear the contest on the mutex for the writer to take over.
     // and when I wake up i'll have the wc mutex so it's ok.
 
 
-    // before requesting the lock
+    // before requesting the shared lock with writers
     tm_stats->log_enter = the_time();
 
-    // if nobody is writing, then I can proceed. but first let me aquire the readers lock
+    // if nobody is writing, then I can proceed. but first let me acquire the readers lock
     LOCK(rc_mutex);
 
     // register myself
@@ -227,10 +228,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
         Sem_wait(&log->log_sem);
     }
 
-    // if has debug time, then sleep with the lock and do it after log sem to also lock out writers.
-    if (log->debug_sleep_time > 0) {
-        sleep(log->debug_sleep_time);
-    }
+
 
     // give the read mutex
     UNLOCK(rc_mutex);
@@ -238,6 +236,10 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // and give the wc mutex
     UNLOCK(wc_mutex);
 
+    // if has debug time, then sleep with the lock and do it after log sem to also lock out writers.
+    if (log->debug_sleep_time > 0) {
+        FSleep(log->debug_sleep_time);
+    }
 
     // before reading
     tm_stats->log_exit = the_time();
@@ -266,6 +268,9 @@ void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
     // atomic increase to break the mutex fariness
     atomic_inc(&log->writer_arrived);
 
+    // before acquiring the writers lock
+    tm_stats->log_enter = the_time();
+
     LOCK(wc_mutex);
     // i'm waiting...
     log->writers_count++;
@@ -273,17 +278,15 @@ void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
     UNLOCK(wc_mutex);
 
 
-    // before acquiring the lock
-    tm_stats->log_enter = the_time();
 
     // now wait for the already there readers to finish and block other writers.
     Sem_wait(&log->log_sem);
 
     if (log->debug_sleep_time > 0) {
-        sleep(log->debug_sleep_time);
+        FSleep(log->debug_sleep_time);
     }
 
-    // we aquired the lock
+    // we acquired the lock
     tm_stats->log_exit = the_time();
 
     _protected_write(log, tm_stats, t_stats);

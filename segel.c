@@ -635,8 +635,7 @@ int Open_listenfd(int port) {
 int UDP_Open(int port) {
     int sd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sd < 0) {
-        //TODO: handle error
-        exit(0);
+        unix_error("socket error");
     }
     // if opening the socket worked let bind the udp
     struct sockaddr_in serveraddr;
@@ -646,7 +645,7 @@ int UDP_Open(int port) {
     if (bind(sd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
         // if binding failed close the socket and handle
         close(sd);
-        //TODO: handle error
+        unix_error("bind error");
     }
 
     // else everything worked
@@ -673,4 +672,18 @@ struct timeval the_time() {
     struct timeval t;
     gettimeofday(&t, NULL);
     return t;
+}
+
+// floating sleep
+void FSleep(double sec) {
+    struct timespec req;
+
+    // the seconds
+    req.tv_sec = (time_t)sec;
+
+    // 1s = 10^-9ns
+    req.tv_nsec = (long)((sec - req.tv_sec) * 1e9);
+
+    // then nano sleep
+    nanosleep(&req, NULL);
 }

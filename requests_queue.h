@@ -41,6 +41,8 @@ rqueue_request_data_t rqueue_pop(rqueue_t *queue);
 
 void commit(rqueue_t* queue);
 
-void rqueue_append(rqueue_t *queue, rqueue_request_data_t arrival_time);
+void rqueue_append_safe(rqueue_t *queue, rqueue_request_data_t arrival_time);
+
+short rqueue_is_full_safe(rqueue_t *queue);
 
 #endif //REQUESTS_QUEUE_H

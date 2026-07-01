@@ -214,5 +214,6 @@ int UDP_Write(int sd, struct sockaddr_in *addr, char *buffer, int n);
 int UDP_Read(int sd, struct sockaddr_in *addr, char *buffer, int n);
 
 struct timeval the_time();
+void FSleep(double sec);
 
 #endif /* __CSAPP_H__ */
