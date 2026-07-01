@@ -39,7 +39,7 @@ short rqueue_is_empty(rqueue_t *queue);
 
 rqueue_request_data_t rqueue_pop(rqueue_t *queue);
 
-void commit(rqueue_t* queue);
+int commit(rqueue_t* queue);
 
 void rqueue_append_safe(rqueue_t *queue, rqueue_request_data_t arrival_time);
 

@@ -135,8 +135,6 @@ void *processor_entry(void *thread_ctx_p) {
             current_udp_node = nextNode;
         }
 
-        // sleep(10);
-
         // if there is a tcp
         if (has_tcp) {
             time_stats dum;
@@ -152,16 +150,20 @@ void *processor_entry(void *thread_ctx_p) {
             Close(conndata.connfd); // Close the connection
 
             // and when I finish i'll return the virtual slot
-            commit(thread_ctx->rqueue);
+            int available_space = commit(thread_ctx->rqueue);
 
             // if was full, I finished proccessing something so let the main thread know
-            // if (rqueue_is_full_safe(thread_ctx->rqueue)) {
+            // so to avoid needing to reall all the signals from the threads, i'll only let the one who freed some space
+            // send a signal, so I only need to read a signal in the main thread
+            if (available_space == 1) {
+                // having available space = 1 at the point, means it was 0 before commit
+                // so the main thread was blocked for sure, even if capacity_size = 1, so it's ok
+            printf("worker thread signal\n");
+
                 char signal = 1;
                 Write(thread_ctx->signal_fd, &signal, 1);
-            // }
+            }
         }
-
-
     }
 
 
@@ -261,9 +263,11 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in clientaddr;
     int clientlen;
 
+    int signal_fd = cap_pipe[0];
+
 
     // we also need to listen to what threads have to say
-    int maxFD = max(max(listenfd, udpsd), cap_pipe[0]) + 1;
+    int maxFD = max(max(listenfd, udpsd), signal_fd) + 1;
 
     // this is not busy waiting rather the server is active
     while (1) {
@@ -282,7 +286,7 @@ int main(int argc, char *argv[]) {
         FD_SET(udpsd, &readfds);
 
         // and the cacpity signal, no need to do any processing it's just to free the select
-        FD_SET(cap_pipe[0], &readfds);
+        FD_SET(signal_fd, &readfds);
 
         // who to read first?
         Select(
@@ -292,6 +296,12 @@ int main(int argc, char *argv[]) {
             NULL,
             NULL
         );
+
+        if (FD_ISSET(signal_fd, &readfds)) {
+            printf("main thread signal \n");
+            char dummy;
+            Read(signal_fd, &dummy, 1);
+        }
 
         // since the priority is to udp we check first
         if (FD_ISSET(udpsd, &readfds)) {
