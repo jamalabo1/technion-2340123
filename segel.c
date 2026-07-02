@@ -244,6 +244,12 @@ void Fstat(int fd, struct stat *buf) {
     if (fstat(fd, buf) < 0)
         unix_error("Fstat error");
 }
+void Pipe(int fds[2]) {
+    if (pipe(fds) < 0) {
+        unix_error("Pipe error");
+    }
+}
+
 
 /***************************************
  * Wrappers for memory mapping functions

@@ -43,6 +43,9 @@ void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
         queue->available_slots = queue_capacity;
     } else {
         queue->is_bounded = 0;
+
+        // infinite slots, I can keep this uninitialized since its never used in the non bound lane
+        queue->available_slots = -1;
     }
 }
 
@@ -79,11 +82,9 @@ int commit(rqueue_t* queue) {
         // ok so the problem in reading the sem value is that its not atomic with post, so it might be that
         // thread A commit, ctx switch, thread B commit, B read -> 2, ctx A, A read -> 2. so we never reach 1.
 
-        int result = atomic_add(&queue->available_slots, 1);
-
-        printf("commit: %d", result);
-
-        return result;
+        // returns the newly available space, this is doing the work twice (adds 1 twice),
+        // so I guess there must be a better way to do it (like fetch add new or smthng but i'll keep as is)
+        return atomic_add(&queue->available_slots, 1) + 1;
     }
 
     // undefined behaviour to commit a non bounded queue. (no one does it in the code)
@@ -91,12 +92,9 @@ int commit(rqueue_t* queue) {
 }
 
 short rqueue_is_full_safe(rqueue_t *queue) {
-    int val;
-
-    Sem_getvalue(&queue->capacity_sem, &val);
 
     // if the value is 0, then it's full, otherwise not.
-    return val == 0;
+    return queue->available_slots == 0;
 }
 
 

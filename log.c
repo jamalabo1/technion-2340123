@@ -47,6 +47,9 @@ struct Server_Log {
     long entries_length;
 
     double debug_sleep_time;
+
+    // writer dumper
+    char dumper[MAXLINE];
 };
 
 // Creates a new server log instance (stub)
@@ -69,15 +72,17 @@ server_log create_log(double debug_sleep_time) {
 
     // dummy empty head
     log_inst->head = Malloc(sizeof(log_entry));
-    log_inst->head->len = 0;
+    log_inst->head->len = -1;
     log_inst->head->next = NULL;
     log_inst->head->data = NULL;
 
     log_inst->last = log_inst->head;
-
     log_inst->entries_length = 0;
 
     log_inst->debug_sleep_time = debug_sleep_time;
+
+    // start dumper empty
+    log_inst->dumper[0] = '\0';
 
     return log_inst;
 }
@@ -111,7 +116,9 @@ long _protected_read(server_log log, char * *dst) {
     log_entry_p current = log->head;
 
     while (current != NULL) {
-        if (current->len== 0) {
+        // dummy can have len = -1, and skip those (which idk how it could happen), empty lens
+        // but im doing the if anyway so let's add it
+        if (current->len <= 0) {
             // skip
             current = current->next;
             continue;
@@ -133,44 +140,38 @@ long _protected_read(server_log log, char * *dst) {
     return log->entries_length;
 }
 
-// // data_len is strlen'ed
-// void _protected_write(server_log log, time_stats tm_stats, threads_stats t_stats) {
-//     // +1 for #
-//     char data[MAXLINE + 1];
-//
-//     // use already there function
-//     int data_len = append_stats(data, t_stats, tm_stats);
-//     data_len += sprintf(data + data_len, "#");
-//
-//
-//     log_entry_p entry = Malloc(sizeof(log_entry));
-//
-//     entry->data = (char *) Malloc((data_len) * sizeof(char));
-//     // copy the data which null term
-//     strcpy(entry->data, data);
-//
-//     // update
-//     entry->len = data_len;
-//     entry->next = NULL;
-//
-//
-//     // update last's next. there exists one because we have a dummy head
-//     log->last->next = entry;
-//     // we are the new last
-//     log->last = entry;
-//
-//     log->entries_length += data_len;
-// }
-
 void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stats) {
     log_entry_p entry = Malloc( sizeof(log_entry));
 
-    entry->data = Malloc((MAXLINE + 1) * sizeof(char));
-    entry->data[0] = '\0'; // start empty
+    // manually counted the stats size:
+    // the longest is Stat-Thread-Dynamic:: with 21 bytes, and each number is int so it's bound by 10 bytes
+    // therefore, we at max have 5*(21 + 1 + 11 + 2) = 175
+    // so let's take 200 for bad luck
+
+    // or another "more correct" solution, let's make it "dynamic", i'll allocate a log, "dumper"
+    // write there i'll check the length, then create a dynamic one
+
+    // 'reset'
+    log->dumper[0] = '\0';
+
+    // if was the first don't add #
+    if (log->head != log->last) {
+        // because having # means left is old and right is new
+        // it either add to new's right or old's left
+        // but olds left is implicitly assuming I know a right will come, which is impossible
+        // so i need to do this when NEW entries come
+        sprintf(log->dumper, "#");
+    }
 
     // use already there function
-    int data_len = append_stats(entry->data, t_stats, *tm_stats);
-    data_len += sprintf(entry->data + data_len, "#");
+    int data_len = append_stats(log->dumper, t_stats, *tm_stats);
+
+
+    entry->data = Malloc((data_len+1) * sizeof(char));
+    // then copy. this must be strcpy and no memopy, because strcopy stops at the first \0
+    // which is exactly where we need to stop, because dumper could have some data after this \0 that
+    // was written before this write.
+    strcpy(entry->data, log->dumper);
 
     // set
     entry->len = data_len;
@@ -190,6 +191,10 @@ void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stat
 int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // if you come before the writer, I will not preempt you. but you need to let the writer know you reading:
     // but to allow multiple readers, we only hold the writer if the room is empty
+
+
+    // before requesting the shared lock with writers
+    tm_stats->log_enter = the_time();
 
 
     LOCK(wc_mutex);
@@ -212,9 +217,6 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // if so then willingly go to sleep (cond wait) and clear the contest on the mutex for the writer to take over.
     // and when I wake up i'll have the wc mutex so it's ok.
 
-
-    // before requesting the shared lock with writers
-    tm_stats->log_enter = the_time();
 
     // if nobody is writing, then I can proceed. but first let me acquire the readers lock
     LOCK(rc_mutex);

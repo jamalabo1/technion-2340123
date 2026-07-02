@@ -93,7 +93,7 @@ static inline void atomic_dec(volatile int *addr) {
  * Useful for building user-space spinlocks.
  */
 static inline int atomic_add(volatile int* variable, int value) {
-    asm volatile(
+    __asm__ __volatile__(
         "lock; xaddl %0, %1"
         : "+r" (value), "+m" (*variable) // input + output
         : // No input-only
@@ -168,6 +168,7 @@ int Select(int  n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 int Dup2(int fd1, int fd2);
 void Stat(const char *filename, struct stat *buf);
 void Fstat(int fd, struct stat *buf) ;
+void Pipe(int fds[2]) ;
 
 /* Memory mapping wrappers */
 void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);

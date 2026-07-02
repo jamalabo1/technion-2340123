@@ -33,13 +33,13 @@ struct thread_ctx {
 typedef struct thread_ctx thread_ctx_t;
 
 
-void _thread_handle_udp(rqueue_request_data_t *data, threads_stats *thread_stats) {
+void _thread_handle_udp(rqueue_request_data_t *data, threads_stats thread_stats) {
     // format response
     char buf[MAXLINE];
     buf[0] = '\0'; // start with 0
 
     // use the already there function
-    int resp_size = append_thread_log(buf, *thread_stats);
+    int resp_size = append_thread_log(buf, thread_stats);
 
     // send response
     UDP_Write(data->connfd, &data->clientaddr, buf, resp_size);
@@ -114,15 +114,14 @@ void *processor_entry(void *thread_ctx_p) {
         // now process
         // printf("thread %d processing\n", thread_ctx->id);
 
-
-        // skip the dummy
+        // skip the dummy and process udp
         current_udp_node = udp_work.next;
         while (current_udp_node != NULL) {
             //get the udp request
             rqueue_request_data_t udpdata = current_udp_node->data;
 
             // handle the udp
-            _thread_handle_udp(&udpdata, &t);
+            _thread_handle_udp(&udpdata, t);
 
             current_udp_node = current_udp_node->next;
         }
@@ -152,13 +151,12 @@ void *processor_entry(void *thread_ctx_p) {
             // and when I finish i'll return the virtual slot
             int available_space = commit(thread_ctx->rqueue);
 
-            // if was full, I finished proccessing something so let the main thread know
-            // so to avoid needing to reall all the signals from the threads, i'll only let the one who freed some space
-            // send a signal, so I only need to read a signal in the main thread
+            // if was full, I finished proccessing something, so let the main thread know
+            // and to avoid needing to read all the signals from threads, i'll only let the one who freed some space
+            // send a signal, so I only need to read 1 signal in the main thread
             if (available_space == 1) {
                 // having available space = 1 at the point, means it was 0 before commit
                 // so the main thread was blocked for sure, even if capacity_size = 1, so it's ok
-            printf("worker thread signal\n");
 
                 char signal = 1;
                 Write(thread_ctx->signal_fd, &signal, 1);
@@ -179,7 +177,7 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_coun
         // create a ctx
         thread_ctx_t *thread_ctx = Malloc(sizeof(thread_ctx_t));
 
-        // instead of reinveing the wheel i'l use the same queue structure, just for each thread
+        // instead of reinventing the wheel i'l use the same queue structure, just for each thread
         rqueue_p udp_rqueue = rqueue_create();
 
         // 'll tie the queue to the global mutex for simplicity
@@ -207,11 +205,8 @@ int max(int a, int b) {
 }
 
 int main(int argc, char *argv[]) {
-    // if weired print stuff happens it's because of fucking buffering
-    // setbuf(stdout, NULL);
-
     if (argc < 6) {
-        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+        fprintf(stderr, "Usage: %s [tcp_portnum] [udp_portnum] [threads] [queue_size] [debug_sleep_time]\n", argv[0]);
         exit(1);
     }
 
@@ -251,10 +246,10 @@ int main(int argc, char *argv[]) {
     rqueue_init(rqueue, &requests_q_mutex, queue_size);
 
 
-    // wake signal pipe
+    // wake signal pipe, to wake the server when a thread finishes processing from a full queue
+    // this is better than timeout because it's async and i think literally event driven
     int cap_pipe[2];
-    pipe(cap_pipe);
-    //TODO: check error
+    Pipe(cap_pipe);
 
     // init threads with ctx
     thread_ctx_t **threads = init_threads_pool(log, rqueue, threads_count, cap_pipe[1]);
@@ -263,6 +258,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in clientaddr;
     int clientlen;
 
+    // main thread reads, workers write
     int signal_fd = cap_pipe[0];
 
 
@@ -285,7 +281,7 @@ int main(int argc, char *argv[]) {
         // or the udpfd
         FD_SET(udpsd, &readfds);
 
-        // and the cacpity signal, no need to do any processing it's just to free the select
+        // and the capacity signal, no need to do any processing it's just to free the select
         FD_SET(signal_fd, &readfds);
 
         // who to read first?
@@ -298,7 +294,6 @@ int main(int argc, char *argv[]) {
         );
 
         if (FD_ISSET(signal_fd, &readfds)) {
-            printf("main thread signal \n");
             char dummy;
             Read(signal_fd, &dummy, 1);
         }
@@ -326,19 +321,18 @@ int main(int argc, char *argv[]) {
                 .connfd = udpsd,
                 // copy addr
                 .clientaddr = clientaddr,
-                // for completness
+                // for completeness
                 .arrival_time = the_time(),
             };
 
             if (threadId > threads_count || threadId <= 0) {
-                // it does not exist
-                app_error("requested thread does not exist");
+                // it does not exist, udp skips invalids, but keep processing to reach tcp
+            } else {
+                thread_ctx_t *thread_ctx = threads[threadId - 1];
+
+                // the queue itself does acquire the lock
+                rqueue_append_safe(thread_ctx->udp_rqueue, data);
             }
-
-            thread_ctx_t *thread_ctx = threads[threadId - 1];
-
-            // the queue itself does aquire the lock
-            rqueue_append_safe(thread_ctx->udp_rqueue, data);
         }
 
         // if tcp is ready (it's math OR not XOR)
@@ -352,11 +346,11 @@ int main(int argc, char *argv[]) {
                 // here the time is when seen first not inserted (can be delayed due to locking or full)
                 .arrival_time = the_time(),
 
-                // this is just for completness, although not used on the tcp path.
+                // this is just for completeness, although not used on the tcp path.
                 .clientaddr = clientaddr,
             };
 
-            // wait (thread blocking no busy wait) until the queue is not full, it internally uses sempahores
+            // wait (thread blocking no busy wait) until the queue is not full, it internally uses semaphores
             // append is thread safe since it internally uses locks
             rqueue_append_safe(rqueue, data);
         }
