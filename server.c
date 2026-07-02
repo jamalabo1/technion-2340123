@@ -101,11 +101,17 @@ void *processor_entry(void *thread_ctx_p) {
         // is there any tcp work?
         short has_tcp = 0;
         rqueue_request_data_t conndata;
+        time_stats dum;
+
 
         if (!rqueue_is_empty(thread_ctx->rqueue)) {
             // don't check the lock I already have it (pthread_cond wakes holding the lock)
             conndata = rqueue_pop(thread_ctx->rqueue);
             has_tcp = 1;
+
+            // record them before processing udp to literally make on queue lift.
+            dum.task_arrival = conndata.arrival_time;
+            dum.task_dispatch = the_time();
         }
 
         // then give up the lock
@@ -136,13 +142,6 @@ void *processor_entry(void *thread_ctx_p) {
 
         // if there is a tcp
         if (has_tcp) {
-            time_stats dum;
-
-            // the problem with doing this in the master thread  vtime is scopped meaning it's life-cycle is tied to the master thread not this
-            // thread. I could've replaced it with pointers instead but lets keep it as is.
-            dum.task_arrival = conndata.arrival_time;
-            dum.task_dispatch = the_time();
-
             // Call the request handler
             requestHandle(conndata.connfd, dum, t, thread_ctx->log);
 

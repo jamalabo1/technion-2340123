@@ -1,13 +1,14 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -O2 -pthread
-TARGETS = test_client stress_client
+PYTHON  = python3
+TARGETS = stress_client
 
-.PHONY: all clean
+.PHONY: all integration clean
 
 all: $(TARGETS)
 
-test_client: test_client.c
-	$(CC) $(CFLAGS) -o $@ $<
+integration:
+	$(PYTHON) integration_suite.py
 
 stress_client: stress_client.c
 	$(CC) $(CFLAGS) -o $@ $<

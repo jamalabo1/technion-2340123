@@ -267,11 +267,11 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
 
 // Appends a new entry to the log (no-op stub)
 void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
-    // atomic increase to break the mutex fariness
-    atomic_inc(&log->writer_arrived);
-
     // before acquiring the writers lock
     tm_stats->log_enter = the_time();
+
+    // atomic increase to break the mutex fariness
+    atomic_inc(&log->writer_arrived);
 
     LOCK(wc_mutex);
     // i'm waiting...
