@@ -74,7 +74,7 @@ static inline void atomic_inc(volatile int *addr) {
 }
 
 /*
- * atomic_inc - Atomically decremenets the integer pointed to by addr.
+ * atomic_inc - Atomically decrements the integer pointed to by addr.
  * This is performed in a single CPU instruction, requiring no mutex.
  */
 static inline void atomic_dec(volatile int *addr) {
@@ -88,20 +88,21 @@ static inline void atomic_dec(volatile int *addr) {
 }
 
 /*
- * test_and_set - Atomically sets the integer pointed to by addr to 1.
+ * atomic - Atomically adds to variables.
  * Returns the PREVIOUS value of the integer.
  * Useful for building user-space spinlocks.
  */
-// static inline int test_and_set(volatile int *addr) {
-//     int old_value = 1;
-//     __asm__ __volatile__ (
-//         "xchgl %0, %1"
-//         : "+m" (*addr), "+r" (old_value)
-//         :
-//         : "memory"
-//     );
-//     return old_value;
-// }
+static inline int atomic_add(volatile int* variable, int value) {
+    asm volatile(
+        "lock; xaddl %0, %1"
+        : "+r" (value), "+m" (*variable) // input + output
+        : // No input-only
+        : "memory"
+    );
+    // old value?
+    return value;
+}
+
 
 static inline int test_and_set(volatile int *addr, int old_value) {
     __asm__ __volatile__ (

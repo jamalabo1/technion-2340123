@@ -17,6 +17,9 @@ struct RequestsQueue {
 
     // is bounded (udp or tcp queue)?
     short is_bounded;
+
+    // for atomic operations along side the mutex
+    int available_slots;
 };
 
 short rqueue_is_empty(rqueue_t *queue) {
@@ -37,6 +40,7 @@ void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
     if (queue_capacity > 0) {
         Sem_init(&queue->capacity_sem, 0, queue_capacity);
         queue->is_bounded = 1;
+        queue->available_slots = queue_capacity;
     } else {
         queue->is_bounded = 0;
     }
@@ -72,11 +76,18 @@ int commit(rqueue_t* queue) {
     if (queue->is_bounded) {
         // now after we took a slot out, we freed one of the virtual slots so we do
         Sem_post(&queue->capacity_sem);
-    }
-    int val;
-    Sem_getvalue(&queue->capacity_sem, &val);
+        // ok so the problem in reading the sem value is that its not atomic with post, so it might be that
+        // thread A commit, ctx switch, thread B commit, B read -> 2, ctx A, A read -> 2. so we never reach 1.
 
-    return val;
+        int result = atomic_add(&queue->available_slots, 1);
+
+        printf("commit: %d", result);
+
+        return result;
+    }
+
+    // undefined behaviour to commit a non bounded queue. (no one does it in the code)
+    return -1;
 }
 
 short rqueue_is_full_safe(rqueue_t *queue) {
@@ -93,8 +104,11 @@ short rqueue_is_full_safe(rqueue_t *queue) {
 // later mutex is moved here....
 void rqueue_append_safe(rqueue_t *queue, rqueue_request_data_t data) {
     if (queue->is_bounded) {
-        // can we aquire a virtual slot ? if so then insert otherwise wait for somebody to free.
+        // can we acquire a virtual slot ? if so then insert otherwise wait for somebody to free.
         Sem_wait(&queue->capacity_sem);
+
+        // you might ask, why use both semaphores and atomics? sems block wait while atomics dont.
+        atomic_dec(&queue->available_slots);
     }
 
     // then acquire the readers mutex
