@@ -666,9 +666,9 @@ int UDP_Open(int port) {
 
 /* $end udp_open */
 
-int UDP_FillSockAddr(struct sockaddr_in *addr, char *hostname, int port) {
-    //TODO
-}
+// int UDP_FillSockAddr(struct sockaddr_in *addr, char *hostname, int port) {
+//     //TODO
+// }
 
 int UDP_Write(int sd, struct sockaddr_in *addr, char *buffer, int n) {
     int len = sizeof(struct sockaddr_in);
@@ -698,4 +698,43 @@ void FSleep(double sec) {
 
     // then nano sleep
     nanosleep(&req, NULL);
+}
+
+int parse_int(char *arg) {
+    char *end = NULL;
+    errno = 0;
+    long value = strtol(arg, &end, 10);
+
+    // invalid if invalid :) or that its not the whole string
+    if (errno == ERANGE || *end != '\0') {
+        app_error("invalid argument supplied");
+    }
+
+    return (int) value;
+}
+
+int try_parse_int(char *arg, int *out) {
+    char *end = NULL;
+    errno = 0;
+    long value = strtol(arg, &end, 10);
+
+    if (*end != '\0' || errno == ERANGE) {
+        return 0;
+    }
+
+    *out = (int) value;
+
+    return 1;
+}
+
+double parse_float(char *arg) {
+    char *end = NULL;
+    errno = 0;
+    double value = strtod(arg, &end);
+
+    if ( *end != '\0' || errno == ERANGE) {
+        app_error("invalid argument supplied");
+    }
+
+    return value;
 }

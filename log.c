@@ -27,14 +27,20 @@ struct Server_Log {
     int readers_count; // how many readers
     int writers_count; // how many writers
 
-    pthread_mutex_t rc_mutex; // reader count mutex
-    pthread_mutex_t wc_mutex; // writer count mutex
+    // pthread_mutex_t rc_mutex; // reader count mutex
+    // pthread_mutex_t wc_mutex; // writer count mutex
+
+    // since readers and writers will fight for wc_mutex anyway, so why not make it a single mutex?
+    // if the reasoning is that writers dont wait for rc_mutex on exit, this is flawed because if N readers are already inside
+    // you'd need to wait for all of them to exit to aquire the log_sem anyway.
+    pthread_mutex_t c_mutex; // counters mutex
 
     // is the gate open?  readers cannot enter if it's closed (writers_count > 0).
     pthread_cond_t gate_cond;
 
 
-    // the actual log mutex
+    // the actual log "mutex". it must be sempahore so that it does not belong to any thread (ownership).
+    // because the first reader to enter is not nessearily the last to exit.
     sem_t log_sem;
 
     // lock free (atomic) writer is there waiting
@@ -60,8 +66,9 @@ server_log create_log(double debug_sleep_time) {
     log_inst->writer_arrived = 0;
 
     // int's mutex
-    Pthread_mutex_init(&log_inst->rc_mutex);
-    Pthread_mutex_init(&log_inst->wc_mutex);
+    // Pthread_mutex_init(&log_inst->rc_mutex);
+    // Pthread_mutex_init(&log_inst->wc_mutex);
+    Pthread_mutex_init(&log_inst->c_mutex);
 
     // gate cond
     Pthread_cond_init(&log_inst->gate_cond);
@@ -91,8 +98,11 @@ server_log create_log(double debug_sleep_time) {
 void destroy_log(server_log log) {
     Sem_destroy(&log->log_sem);
 
-    Pthread_mutex_destroy(&log->rc_mutex);
-    Pthread_mutex_destroy(&log->wc_mutex);
+    // Pthread_mutex_destroy(&log->rc_mutex);
+    // Pthread_mutex_destroy(&log->wc_mutex);
+    Pthread_mutex_destroy(&log->c_mutex);
+
+
     Pthread_cond_destroy(&log->gate_cond);
 
     log_entry_p head = log->head;
@@ -110,7 +120,7 @@ void destroy_log(server_log log) {
 long _protected_read(server_log log, char * *dst) {
     // ok we are given a ref to the buffer var
     // at that place, we need to create the buffer
-    char *data_ptr = (char *) Malloc((log->entries_length+1) * sizeof(char));
+    char *data_ptr = (char *) Malloc((log->entries_length + 1) * sizeof(char));
 
     int i = 0;
     log_entry_p current = log->head;
@@ -140,8 +150,8 @@ long _protected_read(server_log log, char * *dst) {
     return log->entries_length;
 }
 
-void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stats) {
-    log_entry_p entry = Malloc( sizeof(log_entry));
+void _protected_write(server_log log, time_stats *tm_stats, threads_stats t_stats) {
+    log_entry_p entry = Malloc(sizeof(log_entry));
 
     // manually counted the stats size:
     // the longest is Stat-Thread-Dynamic:: with 21 bytes, and each number is int so it's bound by 10 bytes
@@ -167,7 +177,7 @@ void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stat
     int data_len = append_stats(log->dumper, t_stats, *tm_stats);
 
 
-    entry->data = Malloc((data_len+1) * sizeof(char));
+    entry->data = Malloc((data_len + 1) * sizeof(char));
     // then copy. this must be strcpy and no memopy, because strcopy stops at the first \0
     // which is exactly where we need to stop, because dumper could have some data after this \0 that
     // was written before this write.
@@ -188,7 +198,7 @@ void _protected_write(server_log log, time_stats* tm_stats, threads_stats t_stat
 
 
 // Returns dummy log content as string (stub)
-int get_log(server_log log, char **dst, time_stats* tm_stats) {
+int get_log(server_log log, char **dst, time_stats *tm_stats) {
     // if you come before the writer, I will not preempt you. but you need to let the writer know you reading:
     // but to allow multiple readers, we only hold the writer if the room is empty
 
@@ -197,7 +207,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     tm_stats->log_enter = the_time();
 
 
-    LOCK(wc_mutex);
+    LOCK(c_mutex);
     // I cannot enter, so I need a cond lock
     // if the gate is closed, I cannot enter it must be open
     while (
@@ -208,7 +218,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
         // if I read the value as 1 while the broadcast happens before
         // this cannot be the case because writers need wc_mutex to broadcast, which I currently have so I'm safe.
     ) {
-        Pthread_cond_wait(&log->gate_cond, &log->wc_mutex);
+        Pthread_cond_wait(&log->gate_cond, &log->c_mutex);
     }
     // so the story goes:
     // the os gives the reader wc_mutex, the problem with just checking writer count, is that there might be a writer waiting for the lock
@@ -217,9 +227,6 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     // if so then willingly go to sleep (cond wait) and clear the contest on the mutex for the writer to take over.
     // and when I wake up i'll have the wc mutex so it's ok.
 
-
-    // if nobody is writing, then I can proceed. but first let me acquire the readers lock
-    LOCK(rc_mutex);
 
     // register myself
     log->readers_count++;
@@ -230,13 +237,8 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
         Sem_wait(&log->log_sem);
     }
 
-
-
-    // give the read mutex
-    UNLOCK(rc_mutex);
-
     // and give the wc mutex
-    UNLOCK(wc_mutex);
+    UNLOCK(c_mutex);
 
     // if has debug time, then sleep with the lock and do it after log sem to also lock out writers.
     if (log->debug_sleep_time > 0) {
@@ -249,7 +251,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
     int len = _protected_read(log, dst);
 
 
-    LOCK(rc_mutex);
+    LOCK(c_mutex);
     log->readers_count--;
 
     if (log->readers_count == 0) {
@@ -258,7 +260,7 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
         Sem_post(&log->log_sem);
     }
 
-    UNLOCK(rc_mutex);
+    UNLOCK(c_mutex);
 
 
     return len;
@@ -266,19 +268,18 @@ int get_log(server_log log, char **dst, time_stats* tm_stats) {
 
 
 // Appends a new entry to the log (no-op stub)
-void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
+void add_to_log(server_log log, time_stats *tm_stats, threads_stats t_stats) {
     // before acquiring the writers lock
     tm_stats->log_enter = the_time();
 
     // atomic increase to break the mutex fariness
     atomic_inc(&log->writer_arrived);
 
-    LOCK(wc_mutex);
+    LOCK(c_mutex);
     // i'm waiting...
     log->writers_count++;
     // it's ok new readers will go to sleep anyway
-    UNLOCK(wc_mutex);
-
+    UNLOCK(c_mutex);
 
 
     // now wait for the already there readers to finish and block other writers.
@@ -297,12 +298,12 @@ void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
 
     // atomic decrease do it before wc_mutex to have writer_arrived <= writers_count after lock
     // this is important because we don't want a "lost wakeup" where a reader wakes up and sees the incorrect writer arrived value
-    // which is not protected under the wc mutex, i guess it can be moved into the wc_mutex also, but what matters is before the broadcast
+    // which is not protected under the wc mutex, i guess it can be moved into the c_mutex also, but what matters is before the broadcast
     // unless I also protect the readers read with atomic read.
     atomic_dec(&log->writer_arrived);
 
 
-    LOCK(wc_mutex);
+    LOCK(c_mutex);
 
     log->writers_count--;
     // if no more writers let's notify the readers
@@ -311,5 +312,5 @@ void add_to_log(server_log log, time_stats* tm_stats, threads_stats t_stats) {
         Pthread_cond_broadcast(&log->gate_cond);
     }
 
-    UNLOCK(wc_mutex);
+    UNLOCK(c_mutex);
 }

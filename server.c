@@ -203,24 +203,31 @@ int max(int a, int b) {
     return (a > b) ? a : b;
 }
 
+
+
 int main(int argc, char *argv[]) {
-    if (argc < 6) {
+    if (argc != 6) {
         fprintf(stderr, "Usage: %s [tcp_portnum] [udp_portnum] [threads] [queue_size] [debug_sleep_time]\n", argv[0]);
         exit(1);
     }
 
-    int tcp_port = atoi(argv[1]);
-    int udp_port = atoi(argv[2]);
-    int threads_count = atoi(argv[3]);
-    int queue_size = atoi(argv[4]);
-    double debug_sleep_time = atof(argv[5]);
+    int tcp_port = parse_int(argv[1]);
+    int udp_port = parse_int(argv[2]);
+    int threads_count = parse_int(argv[3]);
+    int queue_size = parse_int(argv[4]);
+    double debug_sleep_time = parse_float(argv[5]);
 
-    if (tcp_port <= 1024) {
-        app_error("tcp port must be above 1024");
+    // according to piazza @254 1024 is included
+#define MIN_PORT 1024
+#define MAX_PORT 65535
+
+    if (tcp_port < MIN_PORT || tcp_port > MAX_PORT) {
+        app_error("tcp port must valid in the range 1024-65535");
     }
-    if (udp_port <= 1024) {
-        app_error("udp port must be above 1024");
+    if (udp_port < MIN_PORT || udp_port > MAX_PORT) {
+        app_error("udp port must valid in the range 1024-65535");
     }
+
     if (tcp_port == udp_port) {
         app_error("tcp port must not equal udp_port");
     }
@@ -313,20 +320,22 @@ int main(int argc, char *argv[]) {
             }
             buff[n] = '\0';
             // parse the id
-            int threadId = atoi(buff);
+            int threadId;
+            int valid_thread_id = try_parse_int(buff, &threadId);
 
-            // set the data
-            rqueue_request_data_t data = {
-                .connfd = udpsd,
-                // copy addr
-                .clientaddr = clientaddr,
-                // for completeness
-                .arrival_time = the_time(),
-            };
-
-            if (threadId > threads_count || threadId <= 0) {
+            if (!valid_thread_id || threadId > threads_count || threadId <= 0) {
                 // it does not exist, udp skips invalids, but keep processing to reach tcp
             } else {
+                // set the data
+                rqueue_request_data_t data = {
+                    .connfd = udpsd,
+                    // copy addr
+                    .clientaddr = clientaddr,
+                    // for completeness
+                    .arrival_time = the_time(),
+                };
+
+
                 thread_ctx_t *thread_ctx = threads[threadId - 1];
 
                 // the queue itself does acquire the lock

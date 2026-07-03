@@ -121,6 +121,11 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
     // all in all
     t_stats->total_req++;
 
+    // this way error messages always have log_enter, log_exist as 0
+    struct timeval zerotime = {0, 0};
+    tm_stats.log_enter = zerotime;
+    tm_stats.log_exit = zerotime;
+
 
     if (strcasecmp(method, "GET") == 0) {
         requestReadhdrs(&rio);
@@ -161,14 +166,14 @@ void requestHandle(int fd, time_stats tm_stats, threads_stats t_stats, server_lo
                 return;
             }
 
+            body_content = requestPrepareDynamic(filename, cgiargs, &body_len);
+
             // dynamic request
             t_stats->dynm_req++;
 
-            //a valid dynamic request, add to log
+            // a valid dynamic request, add to log
+            // according to piazza @229 the log is appended when the request finished handling, which means *after* dynamic run, so...
             add_to_log(log, &tm_stats, t_stats);
-
-
-            body_content = requestPrepareDynamic(filename, cgiargs, &body_len);
 
 
             sprintf(resp_headers, "HTTP/1.0 200 OK\r\n");
