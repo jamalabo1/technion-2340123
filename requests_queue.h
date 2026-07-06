@@ -33,7 +33,7 @@ typedef rqueue_t *rqueue_p;
 
 rqueue_p rqueue_create();
 
-void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_size);
+void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, pthread_cond_t* cond_var, int queue_size);
 
 short rqueue_is_empty(rqueue_t *queue);
 

@@ -44,7 +44,7 @@ struct Server_Log {
     sem_t log_sem;
 
     // lock free (atomic) writer is there waiting
-    int writer_arrived;
+    volatile int writer_arrived;
 
 
     //TODO: use a better data structure! this scales poorly: O(N) reads

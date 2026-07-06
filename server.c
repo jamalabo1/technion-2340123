@@ -180,7 +180,7 @@ thread_ctx_t **init_threads_pool(server_log log, rqueue_p queue, int thread_coun
         rqueue_p udp_rqueue = rqueue_create();
 
         // 'll tie the queue to the global mutex for simplicity
-        rqueue_init(udp_rqueue, &requests_q_mutex, -1);
+        rqueue_init(udp_rqueue, &requests_q_mutex, &has_requests, -1);
         thread_ctx->udp_rqueue = udp_rqueue;
 
         // set the ctx fields
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
     // create the queue
     rqueue_p rqueue = rqueue_create();
     // init the queue
-    rqueue_init(rqueue, &requests_q_mutex, queue_size);
+    rqueue_init(rqueue, &requests_q_mutex, &has_requests, queue_size);
 
 
     // wake signal pipe, to wake the server when a thread finishes processing from a full queue
@@ -362,9 +362,6 @@ int main(int argc, char *argv[]) {
             // append is thread safe since it internally uses locks
             rqueue_append_safe(rqueue, data);
         }
-
-        // then we tell everybody the state changed
-        Pthread_cond_broadcast(&has_requests);
     }
 
     // Clean up the server log before exiting

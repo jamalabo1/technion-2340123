@@ -15,24 +15,22 @@ LIBS = -lpthread
 
 .SUFFIXES: .c .o
 
-all: server
-#	client output.cgi
-#	-mkdir -p public
-#	-cp output.cgi favicon.ico home.html public
+all: server client output.cgi
+	-mkdir -p public
+	-cp output.cgi favicon.ico home.html public
 
 server: $(SERVER_OBJS)
 	$(CC) $(CFLAGS) -o server $(SERVER_OBJS) $(LIBS)
 
-#client: $(CLIENT_OBJS)
-#	$(CC) $(CFLAGS) -o client $(CLIENT_OBJS) $(LIBS)
-#
-#output.cgi: output.c
-#	$(CC) $(CFLAGS) -o output.cgi output.c
+client: $(CLIENT_OBJS)
+	$(CC) $(CFLAGS) -o client $(CLIENT_OBJS)
+
+output.cgi: output.c
+	$(CC) $(CFLAGS) -o output.cgi output.c
 
 .c.o:
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	-rm -f $(OBJS) server
-# client output.cgi
+	-rm -f $(OBJS) server client output.cgi
 	-rm -rf public

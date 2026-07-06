@@ -13,13 +13,15 @@ struct RequestsQueue {
     rqueue_request_t *last;
 
     pthread_mutex_t *mutex;
+    pthread_cond_t* cond_var;
+
     sem_t capacity_sem;
 
     // is bounded (udp or tcp queue)?
     short is_bounded;
 
     // for atomic operations along side the mutex
-    int available_slots;
+    volatile int available_slots;
 };
 
 short rqueue_is_empty(rqueue_t *queue) {
@@ -32,10 +34,11 @@ rqueue_p rqueue_create() {
     return Malloc(sizeof(rqueue_t));
 }
 
-void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, int queue_capacity) {
+void rqueue_init(rqueue_t *queue, pthread_mutex_t *mutex, pthread_cond_t* cond_var, int queue_capacity) {
     queue->head = NULL;
     queue->last = NULL;
     queue->mutex = mutex;
+    queue->cond_var = cond_var;
 
     if (queue_capacity > 0) {
         Sem_init(&queue->capacity_sem, 0, queue_capacity);
@@ -130,6 +133,17 @@ void rqueue_append_safe(rqueue_t *queue, rqueue_request_data_t data) {
         current_last->next = request;
     }
 
+
+    // then we tell everybody the state changed. why in append not global in server?
+    // because suppose this: server wants to handle 2 requests, udp and tcp,
+    // if the broadcast was global (after it added both), then if the udp'ed thread A wakes up first, it will handle it's udp and the tcp
+    // but if we had 2 threads in the system, and the udp takes time, then we blocked processing of the tcp for no reason.
+    // if we did 2 phase broadcast, then we create the posibility for:
+    // 1. thread A waking before adding the tcp request.
+    // 2. thread B waking after adding the tcp and before thread A takes the tcp
+    // so it can be the case that we broadcast to threads all go to sleep except thread A, it processes it udp
+    // and while doing so we wake up the rest of the threads to handle the tcp.
+    Pthread_cond_broadcast(queue->cond_var);
 
     QUEUE_UNLOCK
 }
