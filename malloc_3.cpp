@@ -218,12 +218,12 @@ void *smalloc(size_t size) {
         void *ptr = mmap(
             nullptr,
             blk_size,
-            PROT_READ | PROT_WRITE | PROT_EXEC,
-            MAP_ANONYMOUS,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS,
             -1,
             0
         );
-        if (ptr == SBRK_FAILURE) {
+        if (ptr == MAP_FAILED) {
             return nullptr;
         }
 
@@ -237,6 +237,8 @@ void *smalloc(size_t size) {
     // "lazy init"
     if (has_been_inited == false) {
         auto base_ptr = init_aligned();
+        if (base_ptr == nullptr) return nullptr;
+
         // then create all the blocks in the order 10 bucket
         uintptr_t current_ptr = to_uptr(base_ptr);
 
@@ -267,7 +269,7 @@ void *smalloc(size_t size) {
     // );
     int min_order = blk_order(blk_size);
     // since order is 128= 2^7 based, max is just a gurad but is counted for in min block_size
-    for (int search_order = min_order + 1; search_order <= MAX_ORDER; search_order++) {
+    for (int search_order = min_order; search_order <= MAX_ORDER; search_order++) {
         MallocMetaData *current = free_order_array[search_order];
 
         // the list maintains free blocks so hitting something were done
@@ -316,12 +318,12 @@ void *smalloc(size_t size) {
 }
 
 
-MallocMetaData *buddy_merge(MallocMetaData *blk) {
+MallocMetaData *buddy_merge(MallocMetaData *blk, int limit = MAX_ORDER) {
     size_t order = blk->order;
 
 
-    // don't merge max order
-    while (order < MAX_ORDER) {
+    // don't merge limit
+    while (order < limit) {
         // otherwise let keep merging if we can,
         auto *buddy = buddy_ptr(blk, order);
         if (buddy->is_free && buddy->order == order) {
@@ -402,22 +404,33 @@ void *srealloc(void *oldp, size_t size) {
     }
     // otherwise pull up the metadata
     MallocMetaData *blk = MallocMetaData::from_user_ptr(oldp);
-    if (block_size(blk->order) >= size) {
-        // no need to do anything
-        return blk->as_user_ptr();
-    }
 
     if (blk->is_mmap()) {
         // then simply give up the current blk and smalloc a new
         auto mmap_blk = MmapMallocMetaData::from_parent(blk);
 
-        // free then let smmaloc create a new one
+        // let smmaloc create a new one
+        auto nmap = smalloc(size);;
+        if (nmap == nullptr) return nullptr;
+
+        // otherwise free then
         mmap_blk->deallocate();
 
-        return smalloc(size);
+        //TODO: maybe add goto jump section to copy the data here
+
+        return nmap;
     }
 
-    size_t target_order = blk_order(size);
+    size_t rsize = size + METADATA_SIZE;
+
+
+    if (block_size(blk->order) >= rsize) {
+        // no need to do anything
+        return blk->as_user_ptr();
+    }
+
+
+    size_t target_order = blk_order(rsize);
 
     MallocMetaData *cur = blk;
     int order = cur->order;
@@ -442,7 +455,7 @@ void *srealloc(void *oldp, size_t size) {
         // this swallows or retroactily "merges" every block but we need to remove them from the list
 
         // in a sane model I would've keept the buddy list but we are limited on memory so we'll just merge again
-        cur = buddy_merge(blk);
+        cur = buddy_merge(blk, target_order);
 
         cur->is_free = false;
         cur->order = target_order;
@@ -451,20 +464,18 @@ void *srealloc(void *oldp, size_t size) {
         return cur->as_user_ptr();
     }
 
-    size_t target_size = block_size(target_order);
-
     // If I could've merge buddies then it is what it is let smalloc do the job
-    void *nptr = smalloc(target_size);
+    void *nptr = smalloc(size);
     if (nptr == nullptr) {
         // failed
         return nullptr;
     }
 
     // nptr to me here is as if I was a user, not aware of metadata
-    std::memmove(nptr, oldp, target_size);
+    std::memmove(nptr, oldp, size);
 
     // then free the older blk
-    sfree(blk);
+    sfree(oldp);
 
     // user ptr
     return nptr;
@@ -478,8 +489,6 @@ void traverse_blocks(const std::function<void(MallocMetaData *)> &predicate) {
             current = current->next;
         }
     }
-    for (int i = 0; )
-
 }
 
 
