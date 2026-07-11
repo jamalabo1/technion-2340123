@@ -4,7 +4,6 @@
 
 #include <unistd.h>
 #include <cstring>
-#include <functional>
 
 #define MAX_SIZE 0x5F5E100
 #define METADATA_SIZE sizeof(MallocMetaData)
@@ -27,7 +26,7 @@ public:
         return (MallocMetaData *) (ptr);
     }
 
-    static MallocMetaData *init_sbrk_ptr(void *ptr, size_t size) {
+    static MallocMetaData *init_raw_ptr(void *ptr, size_t size) {
         MallocMetaData *metadata = from_sbrk_ptr(ptr);
 
         metadata->size = size;
@@ -48,7 +47,7 @@ public:
         if (ptr == SBRK_FAILURE) return nullptr;
 
         // then init it
-        return init_sbrk_ptr(ptr, size);
+        return init_raw_ptr(ptr, size);
     }
 
     void *as_user_ptr() {
@@ -74,6 +73,7 @@ void *smalloc(size_t size) {
             // failure
             return nullptr;
         }
+        ptr->is_free = false;
 
         first_block = ptr;
 
@@ -122,7 +122,7 @@ void *scalloc(size_t num, size_t size) {
     if (size * num == 0) {
         return nullptr;
     }
-    if (size * num > MAX_SIZE) {
+    if (num > (MAX_SIZE / size)) {
         return nullptr;
     }
 
@@ -189,69 +189,56 @@ void *srealloc(void *oldp, size_t size) {
     return nptr;
 }
 
-void traverse_blocks(const std::function<void(MallocMetaData *)> &predicate) {
-    MallocMetaData *current = first_block;
-    while (current != nullptr) {
-        predicate(current);
-        current = current->next;
-    }
-}
+struct AllocatorStats {
+    size_t free_blocks = 0;
+    size_t free_bytes = 0;
+    size_t allocated_blocks = 0;
+    size_t allocated_bytes = 0;
+};
 
+// instead of duplicating the traversal logic everywhere
+AllocatorStats collect_stats() {
+    AllocatorStats stats;
 
-// this is where years of javascript comes into play
-using acc_pair = std::pair<bool, long>; // this i owe to typescript
-size_t accumulator(const std::function<acc_pair(MallocMetaData *)> &predicate) {
-    size_t result = 0;
-    traverse_blocks([&result, &predicate](MallocMetaData *metadata) {
-        auto pred = predicate(metadata);
-        if (pred.first) {
-            result += pred.second;
+    for (
+        MallocMetaData *current = first_block;
+        current != nullptr;
+        current = current->next
+    ) {
+        const size_t data_size = current->size;
+
+        stats.allocated_blocks++;
+        stats.allocated_bytes += data_size;
+
+        if (current->is_free) {
+            stats.free_blocks++;
+            stats.free_bytes += data_size;
         }
-    });
+    }
 
-    return result;
+    return stats;
 }
-
 
 size_t _num_free_blocks() {
-    // since no optimizations are required we'll just check everything to completion
-    return accumulator([](auto current) {
-        return acc_pair{current->is_free, 1};
-    });
+    return collect_stats().free_blocks;
 }
 
-
 size_t _num_free_bytes() {
-    return accumulator(
-        [](auto current) {
-            return acc_pair{current->is_free, current->size};
-        }
-    );
+    return collect_stats().free_bytes;
 }
 
 size_t _num_allocated_blocks() {
-    return accumulator([](auto current) {
-        return acc_pair{true, 1};
-    });
+    return collect_stats().allocated_blocks;
 }
 
 size_t _num_allocated_bytes() {
-    return accumulator([](auto current) {
-        return acc_pair{true, current->size};
-    });
-}
-
-size_t _num_meta_data_bytes() {
-    return accumulator([](auto current) {
-        return acc_pair{true, METADATA_SIZE};
-    });
+    return collect_stats().allocated_bytes;
 }
 
 size_t _size_meta_data() {
     return METADATA_SIZE;
 }
 
-
-int main() {
-    //TODO: DUMMY FOR COMPILE
+size_t _num_meta_data_bytes() {
+    return _num_allocated_blocks() * _size_meta_data();
 }
