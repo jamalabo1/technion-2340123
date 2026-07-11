@@ -2,6 +2,7 @@
 // Created by jamal on 07/07/2026.
 //
 
+#include <cstdint>
 #include <unistd.h>
 #include <cstring>
 
@@ -18,12 +19,12 @@ public:
 
 
     static MallocMetaData *from_user_ptr(void *ptr) {
-        return static_cast<MallocMetaData *>(ptr - METADATA_SIZE);
+        return (MallocMetaData *) (uintptr_t(ptr) - METADATA_SIZE);
     }
 
     static MallocMetaData *from_sbrk_ptr(void *ptr) {
         // let's treat this pointer as mallocmeta ptr this is like static cast but c syntax style i'll use both for fun
-        return (MallocMetaData *) (ptr);
+        return static_cast<MallocMetaData *>(ptr);
     }
 
     static MallocMetaData *init_raw_ptr(void *ptr, size_t size) {
@@ -51,7 +52,7 @@ public:
     }
 
     void *as_user_ptr() {
-        return (void *) (this) + METADATA_SIZE;
+        return (void *) (uintptr_t(this) + METADATA_SIZE);
     }
 };
 

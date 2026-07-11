@@ -21,11 +21,11 @@ using std::uintptr_t;
 // this lives on the bbs so am ok.
 static bool has_been_inited = false;
 // 2^22
-constexpr std::uintptr_t alignment = 0b1 << 22;
-constexpr std::size_t MIN_BLOCK_SIZE = 128;
+constexpr uintptr_t alignment = uintptr_t(1) << 22;
+constexpr size_t MIN_BLOCK_SIZE = 128;
 
 /* helpers */
-std::size_t blk_size(const size_t &order) {
+size_t blk_size(const size_t &order) {
     return MIN_BLOCK_SIZE << order;
 }
 
@@ -447,7 +447,7 @@ void sfree(void *p) {
 
             int result = munmap(
                 blk,
-                blk->data_size()
+                blk->block_size()
             );
             // TODO: failure what to do?
             if (result == -1) {

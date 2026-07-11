@@ -114,13 +114,18 @@ static bool pattern_ok(const void *p, size_t n, unsigned char seed) {
 // before the first real allocation nothing was sbrk'ed - all stats must be 0,
 // and rejected requests must not trigger the lazy init
 static void test_pre_init() {
+    void *brk_before = sbrk(0);
+
     CHECK(smalloc(0) == NULL);
     CHECK(smalloc(MAX_ALLOC + 1) == NULL);
     CHECK(scalloc(0, 4) == NULL);
     CHECK(scalloc(4, 0) == NULL);
+    CHECK(scalloc(1, MAX_ALLOC + 1) == NULL);
+    CHECK(scalloc(MAX_ALLOC + 1, 1) == NULL);
     CHECK(scalloc(MAX_ALLOC, 2) == NULL);
     CHECK(scalloc((size_t)1 << (sizeof(size_t) * 8 - 1), 2) == NULL); // overflow
     CHECK(srealloc(NULL, 0) == NULL);
+    CHECK(sbrk(0) == brk_before);
 
     CHECK_EQ(_num_allocated_blocks(), 0);
     CHECK_EQ(_num_allocated_bytes(), 0);
@@ -194,6 +199,31 @@ static void test_order_boundaries() {
     sfree(c);
     sfree(d);
     VERIFY_CLEAN();
+}
+
+static void test_large_first_allocation_initializes_once() {
+    size_t large_size = 256 * 1024;
+
+    char *p = (char *) smalloc(large_size);
+    REQUIRE(p != NULL);
+    void *brk_after_first = sbrk(0);
+    fill_pattern(p, 4096, 44);
+
+    CHECK_EQ(_num_allocated_blocks(), NUM_INIT + 1);
+    CHECK_EQ(_num_free_blocks(), NUM_INIT);
+    CHECK_EQ(_num_free_bytes(), clean_bytes());
+    CHECK_EQ(_num_allocated_bytes(), clean_bytes() + large_size);
+
+    char *q = (char *) smalloc(large_size + 4096);
+    REQUIRE(q != NULL);
+    CHECK(sbrk(0) == brk_after_first);
+    CHECK_EQ(_num_allocated_blocks(), NUM_INIT + 2);
+    CHECK(pattern_ok(p, 4096, 44));
+
+    sfree(p);
+    sfree(q);
+    VERIFY_CLEAN();
+    CHECK(sbrk(0) == brk_after_first);
 }
 
 // Tightest fit wins before address order across different sizes: the higher
@@ -309,6 +339,30 @@ static void test_scalloc_zeroing() {
     bool all_zero = true;
     for (int i = 0; i < 100; i++) all_zero = all_zero && (q[i] == 0);
     CHECK(all_zero);
+    sfree(q);
+    VERIFY_CLEAN();
+}
+
+static void test_scalloc_heap_threshold_boundary() {
+    size_t heap_max = BLOCK_SIZE - META;
+
+    unsigned char *p = (unsigned char *) scalloc(heap_max, 1);
+    REQUIRE(p != NULL);
+    CHECK(p[0] == 0);
+    CHECK(p[heap_max - 1] == 0);
+    CHECK_EQ(_num_allocated_blocks(), NUM_INIT);
+    CHECK_EQ(_num_free_blocks(), NUM_INIT - 1);
+    p[heap_max - 1] = 'h';
+    CHECK(p[heap_max - 1] == 'h');
+    sfree(p);
+    VERIFY_CLEAN();
+
+    unsigned char *q = (unsigned char *) scalloc(heap_max + 1, 1);
+    REQUIRE(q != NULL);
+    CHECK(q[0] == 0);
+    CHECK(q[heap_max] == 0);
+    CHECK_EQ(_num_allocated_blocks(), NUM_INIT + 1);
+    CHECK_EQ(_num_free_blocks(), NUM_INIT);
     sfree(q);
     VERIFY_CLEAN();
 }
@@ -453,6 +507,33 @@ static void test_srealloc_multilevel_merge() {
     REQUIRE(q != NULL);
     CHECK(q == p[0]);
     CHECK(pattern_ok(q, fill_n, 87));
+
+    sfree(q);
+    sfree(p[4]);
+    VERIFY_CLEAN();
+}
+
+static void test_srealloc_multilevel_merge_from_right() {
+    size_t order2_max = 512 - META;
+    size_t s0_payload = 128 - META;
+    size_t fill_n = s0_payload < 60 ? s0_payload : 60;
+
+    char *p[5];
+    for (int i = 0; i < 5; i++) {
+        p[i] = (char *) smalloc(1);
+        REQUIRE(p[i] != NULL);
+    }
+    uintptr_t base = block_base(p[0]);
+
+    fill_pattern(p[3], fill_n, 89);
+    sfree(p[0]);
+    sfree(p[1]); // p[0] and p[1] merge into an order-1 block
+    sfree(p[2]); // p[3]'s direct buddy is now free too
+
+    char *q = (char *) srealloc(p[3], order2_max);
+    REQUIRE(q != NULL);
+    CHECK_EQ((uintptr_t) q, base + META);
+    CHECK(pattern_ok(q, fill_n, 89));
 
     sfree(q);
     sfree(p[4]);
@@ -708,25 +789,28 @@ int main() {
         {"Test 2: lazy init + split accounting",                    test_init_and_split_accounting},
         {"Test 3: deterministic placement of 8 small allocations",  test_deterministic_layout},
         {"Test 4: order-size boundaries",                           test_order_boundaries},
-        {"Test 5: tightest fit beats lower-address large block",    test_tightest_fit_beats_lower_large_block},
-        {"Test 6: exact order-10 fit does not split",               test_exact_max_order_no_split},
-        {"Test 7: no merge while buddy is used, cascade after",     test_merge_requires_free_buddy},
-        {"Test 8: partial coalescing reused by tight fit",          test_partial_coalescing_reused_by_tight_fit},
-        {"Test 9: sfree(NULL) and double free are no-ops",          test_free_edge_cases},
-        {"Test 10: scalloc zeroes fresh and dirty reused memory",   test_scalloc_zeroing},
-        {"Test 11: mmap threshold boundary + stats",                test_mmap_threshold},
-        {"Test 12: several mmap blocks, freeing head/middle/tail",  test_mmap_multiple_and_list_removal},
-        {"Test 13: 10^8 boundary via mmap",                         test_mmap_max_boundary},
-        {"Test 14: srealloc reuses current block when it fits",     test_srealloc_reuse_current},
-        {"Test 15: srealloc grows by merging free buddies",         test_srealloc_merge_with_buddy},
-        {"Test 16: srealloc grows through multiple buddy levels",   test_srealloc_multilevel_merge},
-        {"Test 17: srealloc relocates when buddy is used",          test_srealloc_relocate},
-        {"Test 18: srealloc NULL / size 0 / size > 10^8",           test_srealloc_null_zero_max},
-        {"Test 19: srealloc on mmap'ed blocks always relocates",    test_srealloc_mmap},
-        {"Test 20: srealloc same-size mmap block is reused",        test_srealloc_mmap_same_size_reuses},
-        {"Test 21: invalid mmap srealloc preserves block",          test_srealloc_mmap_invalid_preserves_block},
-        {"Test 22: heap exhaustion + no extra sbrk",                test_exhaustion},
-        {"Test 23: alloc/free stress with pattern verification",    test_stress_integrity},
+        {"Test 5: mmap-sized first allocation initializes once",     test_large_first_allocation_initializes_once},
+        {"Test 6: tightest fit beats lower-address large block",    test_tightest_fit_beats_lower_large_block},
+        {"Test 7: exact order-10 fit does not split",               test_exact_max_order_no_split},
+        {"Test 8: no merge while buddy is used, cascade after",     test_merge_requires_free_buddy},
+        {"Test 9: partial coalescing reused by tight fit",          test_partial_coalescing_reused_by_tight_fit},
+        {"Test 10: sfree(NULL) and double free are no-ops",         test_free_edge_cases},
+        {"Test 11: scalloc zeroes fresh and dirty reused memory",   test_scalloc_zeroing},
+        {"Test 12: scalloc heap/mmap threshold boundary",           test_scalloc_heap_threshold_boundary},
+        {"Test 13: mmap threshold boundary + stats",                test_mmap_threshold},
+        {"Test 14: several mmap blocks, freeing head/middle/tail",  test_mmap_multiple_and_list_removal},
+        {"Test 15: 10^8 boundary via mmap",                         test_mmap_max_boundary},
+        {"Test 16: srealloc reuses current block when it fits",     test_srealloc_reuse_current},
+        {"Test 17: srealloc grows by merging free buddies",         test_srealloc_merge_with_buddy},
+        {"Test 18: srealloc grows through multiple buddy levels",   test_srealloc_multilevel_merge},
+        {"Test 19: srealloc multilevel merge can move left",        test_srealloc_multilevel_merge_from_right},
+        {"Test 20: srealloc relocates when buddy is used",          test_srealloc_relocate},
+        {"Test 21: srealloc NULL / size 0 / size > 10^8",           test_srealloc_null_zero_max},
+        {"Test 22: srealloc on mmap'ed blocks always relocates",    test_srealloc_mmap},
+        {"Test 23: srealloc same-size mmap block is reused",        test_srealloc_mmap_same_size_reuses},
+        {"Test 24: invalid mmap srealloc preserves block",          test_srealloc_mmap_invalid_preserves_block},
+        {"Test 25: heap exhaustion + no extra sbrk",                test_exhaustion},
+        {"Test 26: alloc/free stress with pattern verification",    test_stress_integrity},
     };
     const int total = sizeof(tests) / sizeof(tests[0]);
 

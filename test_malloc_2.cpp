@@ -97,6 +97,8 @@ static void test_rejects() {
     CHECK(smalloc(MAX_ALLOC + 1) == NULL);
     CHECK(scalloc(0, 8) == NULL);
     CHECK(scalloc(8, 0) == NULL);
+    CHECK(scalloc(1, MAX_ALLOC + 1) == NULL);
+    CHECK(scalloc(MAX_ALLOC + 1, 1) == NULL);
     CHECK(scalloc(MAX_ALLOC, 2) == NULL);          // 2*10^8 > 10^8
     CHECK(scalloc(MAX_ALLOC / 4 + 1, 4) == NULL);  // just above 10^8
     // num*size overflows size_t and wraps around to 2 - must still be NULL
@@ -344,6 +346,32 @@ static void test_srealloc_reuses_free_block() {
     CHECK_EQ(_num_allocated_blocks(), 2); // no new block was created
 }
 
+static void test_srealloc_uses_lowest_address_free_block() {
+    char *low = (char *) smalloc(2400);
+    char *oldp = (char *) smalloc(300);
+    char *middle = (char *) smalloc(2600);
+    char *high = (char *) smalloc(2500);
+    REQUIRE(low && oldp && middle && high);
+    fill_pattern(oldp, 300, 111);
+    fill_pattern(middle, 2600, 112);
+
+    sfree(high);
+    sfree(low);
+
+    char *q = (char *) srealloc(oldp, 2300);
+    REQUIRE(q != NULL);
+    CHECK(q == low);
+    CHECK(pattern_ok(q, 300, 111));
+    CHECK(pattern_ok(middle, 2600, 112));
+    CHECK_EQ(_num_allocated_blocks(), 4);
+    CHECK_EQ(_num_free_blocks(), 2);
+    CHECK_EQ(_num_free_bytes(), 300 + 2500);
+
+    char *r = (char *) smalloc(2400);
+    REQUIRE(r != NULL);
+    CHECK(r == high);
+}
+
 static void test_srealloc_failure_keeps_block() {
     char *p = (char *) smalloc(1900);
     REQUIRE(p != NULL);
@@ -505,12 +533,13 @@ int main() {
         {"Test 11: srealloc grow copies content and frees old block", test_srealloc_grow_copies_and_frees},
         {"Test 12: srealloc move frees old slot and keeps neighbors", test_srealloc_move_frees_old_and_keeps_neighbors},
         {"Test 13: srealloc grow prefers an existing free block",     test_srealloc_reuses_free_block},
-        {"Test 14: failed srealloc must NOT free oldp",               test_srealloc_failure_keeps_block},
-        {"Test 15: invalid calls after allocs preserve state",        test_invalid_calls_after_allocs_preserve_state},
-        {"Test 16: srealloc(NULL, n) behaves like smalloc",           test_srealloc_null_oldp},
-        {"Test 17: metadata bookkeeping is self-consistent",          test_metadata_consistency},
-        {"Test 18: pattern integrity across many live blocks",        test_data_integrity_many_blocks},
-        {"Test 19: exact 10^8 boundary",                              test_max_boundary},
+        {"Test 14: srealloc chooses lowest-address fitting free block", test_srealloc_uses_lowest_address_free_block},
+        {"Test 15: failed srealloc must NOT free oldp",               test_srealloc_failure_keeps_block},
+        {"Test 16: invalid calls after allocs preserve state",        test_invalid_calls_after_allocs_preserve_state},
+        {"Test 17: srealloc(NULL, n) behaves like smalloc",           test_srealloc_null_oldp},
+        {"Test 18: metadata bookkeeping is self-consistent",          test_metadata_consistency},
+        {"Test 19: pattern integrity across many live blocks",        test_data_integrity_many_blocks},
+        {"Test 20: exact 10^8 boundary",                              test_max_boundary},
     };
     const int total = sizeof(tests) / sizeof(tests[0]);
 
