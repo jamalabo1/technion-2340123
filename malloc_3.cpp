@@ -32,8 +32,7 @@ uintptr_t to_uptr(void *ptr) {
     return reinterpret_cast<uintptr_t>(ptr);
 }
 
-static unsigned ceilLog2(uint64_t x)
-{
+static unsigned ceilLog2(uint64_t x) {
     if (x <= 1) {
         return 0;
     }
@@ -46,15 +45,14 @@ static unsigned ceilLog2(uint64_t x)
     asm (
         "bsrq %1, %0"
         : "=r" (msb)
-        : "r"  (value)
+        : "r" (value)
         : "cc"
     );
 
     return static_cast<unsigned>(msb + 1);
 }
 
-static size_t blk_order(std::size_t size)
-{
+static size_t blk_order(std::size_t size) {
     // so since the base is 2^7 might as well just take it out, and since I want x such that
     // 2^{x-1} <= size < 2^
     // then I can use ceil log, since it's log_2(x) then round to the near integer.
@@ -62,30 +60,48 @@ static size_t blk_order(std::size_t size)
     const unsigned log = ceilLog2(size);
 
     return log > 7
-        ? static_cast<std::size_t>(log - 7)
-        : 0;
+               ? static_cast<std::size_t>(log - 7)
+               : 0;
 }
 
 class MallocMetaData {
 private:
+    // although everything is size_t, the maximal number this field can hold is MAX_SIZE,
+    // which has ceil(log(..)) = 27, therefore it fits in 32 bits int, so it saves us 4 bytes theoritical
+    // but actually 8 because of alignment
     bool _is_free;
+    // moreover, we can optimize the bool and use the 30'th bit into the is free flag. but this does not help the
+    // alignment so we'll not do it
     int _order;
 
 public:
+    /* fields */
+    bool is_free() const {
+        return _is_free;
+    }
+
+    void set_status(bool is_free) {
+        _is_free = is_free;
+    }
+
+    int order() const {
+        return _order;
+    }
+
+    void set_order(int order) {
+        _order = order;
+    }
+
     // free list
     static MallocMetaData *free_order_array[MAX_ORDER + 1];
     // mmaps list
     static MallocMetaData *mmap_list;
 
 
-    // although everything is size_t, the maximal number this field can hold is MAX_SIZE,
-    // which has ceil(log(..)) = 27, therefore it fits in 32 bits int, so it saves us 4 bytes theoritical
-    // but actually 8 because of alignment
     MallocMetaData *next;
     MallocMetaData *prev;
 
     /* */
-
 
 
     static MallocMetaData *from_raw_ptr(uintptr_t ptr) {
@@ -105,9 +121,9 @@ public:
     }
 
     static MallocMetaData *init_ptr(MallocMetaData *metadata, size_t order) {
-        metadata->order = order;
+        metadata->set_order(static_cast<int>(order));
         // about to be returned
-        metadata->is_free = true;
+        metadata->set_status(true);
         // i'm the last so that it's inherntly ordered by sbrk
         metadata->next = nullptr;
 
@@ -127,22 +143,22 @@ public:
 
     /* sizes  */
     bool is_mmap() const {
-        return order > MAX_ORDER;
+        return order() > MAX_ORDER;
     }
 
     size_t block_size() const {
         if (is_mmap()) {
-            return this->order;
+            return static_cast<size_t>(this->order());
         }
-        return blk_size(order);
+        return blk_size(order());
     }
 
     size_t data_size() const {
         size_t size;
         if (this->is_mmap()) {
-            size = order;
+            size = static_cast<size_t>(order());
         } else {
-            size = blk_size(order);
+            size = blk_size(order());
         }
 
         return size - METADATA_SIZE;
@@ -180,7 +196,7 @@ public:
             prev->next = next;
         } else {
             // I was the haed so
-            free_order_array[this->order] = next;
+            free_order_array[this->order()] = next;
         }
 
         // then those values mean nothing anymore
@@ -190,7 +206,7 @@ public:
 
     void insert_sbrk() {
         // but I must make sure the list is addr ordered.
-        auto * &head = free_order_array[order];
+        auto * &head = free_order_array[order()];
 
         this->prev = nullptr;
         this->next = nullptr;
@@ -250,7 +266,7 @@ public:
     }
 
     MallocMetaData *buddy_ptr() {
-        return buddy_ptr(order);
+        return buddy_ptr(order());
     }
 };
 
@@ -344,7 +360,7 @@ void *smalloc(size_t size) {
 
         // setting order is flaging as mmap
         MallocMetaData *metadata = MallocMetaData::init_raw_ptr(ptr, rblk_size);
-        metadata->is_free = false;
+        metadata->set_status(false);
 
         // insert to mmap
         metadata->insert_mmap();
@@ -383,7 +399,7 @@ void *smalloc(size_t size) {
                 // this guy at buddy is not a free valid block yet so lets init it and add it to the array of order m-1
                 // first put the metadata there
                 MallocMetaData::init_ptr(buddy, m - 1);
-                buddy->is_free = true;
+                buddy->set_status(true);
 
                 // we have a new block free of order m-1
                 buddy->insert_sbrk();
@@ -393,10 +409,10 @@ void *smalloc(size_t size) {
             }
 
 
-            current->is_free = false;
+            current->set_status(false);
 
             // what is your new order
-            current->order = min_order;
+            current->set_order(static_cast<int>(min_order));
 
             // return as user ptr
             return current->as_user_ptr();
@@ -409,14 +425,14 @@ void *smalloc(size_t size) {
 
 
 MallocMetaData *buddy_merge(MallocMetaData *blk, size_t limit = MAX_ORDER) {
-    size_t order = blk->order;
+    size_t order = static_cast<size_t>(blk->order());
 
 
     // don't merge limit
     while (order < limit) {
         // otherwise let keep merging if we can,
         auto *buddy = blk->buddy_ptr();
-        if (buddy->is_free && buddy->order == order) {
+        if (buddy->is_free() && static_cast<size_t>(buddy->order()) == order) {
             // first we remove it from free array
             buddy->unlink();
 
@@ -425,7 +441,7 @@ MallocMetaData *buddy_merge(MallocMetaData *blk, size_t limit = MAX_ORDER) {
 
             // then when I increase my order its like I have "swallowed the buddy" the metadata there will "invalid"
             // once I virtually increase my size
-            blk->order = ++order;
+            blk->set_order(static_cast<int>(++order));
         } else {
             // not free stop there.
             break;
@@ -442,7 +458,7 @@ void sfree(void *p) {
     // we already have the mmaps list, so lets check it
     if (auto *blk = MallocMetaData::find_mmap_block(p)) {
         // then it's mmap
-        if (blk->is_free) {
+        if (blk->is_free()) {
             // if was already free, this should'nt be the case since we remove mmap regions from the list
             return;
         }
@@ -489,19 +505,19 @@ void sfree(void *p) {
 
     // otherwise, lets get the sbrk metadata
     auto blk = MallocMetaData::from_user_ptr(p);
-    if (blk->is_free) return;
+    if (blk->is_free()) return;
 
     // why I don't have to update the right buddy metadata? because if blk returned to me the left buddy for example
     // it means merge updated the order of this left block, so in terms of what the block represent in now includes all
     // the buddy data with in it, so now the right buddy metadata is garbage data from the system pov,
     // because now we have a block of double the size so now it's internal data, so we don't worry about updating it
     // but for the user prespective it can do sfree(x) sfree(x) so we need to update the supplied ptr
-    blk->is_free = true;
+    blk->set_status(true);
 
     // buddy merge
     blk = buddy_merge(blk);
 
-    blk->is_free = true;
+    blk->set_status(true);
     // and lets make it available
     blk->insert_sbrk();
 }
@@ -585,7 +601,7 @@ void *srealloc(void *oldp, size_t size) {
 
     // if this block already can fit the requested size, so don't do anything
     //TODO: check shrinking requirement (do we split?)
-    if (blk->order >= target_order) {
+    if (static_cast<size_t>(blk->order()) >= target_order) {
         // no need to do anything
         return blk->as_user_ptr();
     }
@@ -600,16 +616,16 @@ void *srealloc(void *oldp, size_t size) {
 
 
     MallocMetaData *cur = blk;
-    size_t order = cur->order;
+    size_t order = static_cast<size_t>(cur->order());
 
     // now lets check, can I use buddies?
     while (order < target_order) {
         // otherwise let keep merging if we can,
         auto *buddy = cur->buddy_ptr(order);
         if (
-            buddy->is_free
+            buddy->is_free()
             &&
-            buddy->order == order
+            static_cast<size_t>(buddy->order()) == order
         ) {
             // pick left
             cur = std::min(buddy, cur);
@@ -638,10 +654,10 @@ void *srealloc(void *oldp, size_t size) {
             std::memmove(nptr, oldp, old_size);
         }
 
-        cur->is_free = false;
+        cur->set_status(false);
         // since we defined target_order as the minimum of possible size, and we know we can merge
         // this field shoud've been at this value even before we set it because that what buddy merge should've done.
-        cur->order = target_order;
+        cur->set_order(static_cast<int>(target_order));
 
 
         return nptr;
@@ -677,7 +693,7 @@ AllocatorStats collect_stats() {
             stats.allocated_blocks++;
             stats.allocated_bytes += usable_size;
 
-            if (block->is_free) {
+            if (block->is_free()) {
                 stats.free_blocks++;
                 stats.free_bytes += usable_size;
             }

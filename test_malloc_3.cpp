@@ -571,17 +571,70 @@ static void test_srealloc_relocate() {
 }
 
 static void test_srealloc_null_zero_max() {
-    char *p = (char *) srealloc(NULL, 100); // acts like smalloc
+    // 128 bytes of payload plus any valid metadata size always requires an
+    // order-1 block.  Using 100 here made the expected free-block count depend
+    // on whether the metadata happened to be 24 or 32 bytes.
+    const size_t payload_size = 128;
+    char *p = (char *) srealloc(NULL, payload_size); // acts like smalloc
     REQUIRE(p != NULL);
-    fill_pattern(p, 100, 84);
+    fill_pattern(p, payload_size, 84);
+
+    const size_t allocated_blocks = _num_allocated_blocks();
+    const size_t allocated_bytes = _num_allocated_bytes();
+    const size_t free_blocks = _num_free_blocks();
+    const size_t free_bytes = _num_free_bytes();
 
     CHECK(srealloc(p, 0) == NULL);
     CHECK(srealloc(p, MAX_ALLOC + 1) == NULL);
-    CHECK(pattern_ok(p, 100, 84)); // failure must not free or clobber oldp
+    CHECK(srealloc(p, (size_t) -1) == NULL);
+    CHECK(pattern_ok(p, payload_size, 84)); // failures preserve oldp and its data
+    CHECK_EQ(_num_allocated_blocks(), allocated_blocks);
+    CHECK_EQ(_num_allocated_bytes(), allocated_bytes);
+    CHECK_EQ(_num_free_blocks(), free_blocks);
+    CHECK_EQ(_num_free_bytes(), free_bytes);
     CHECK_EQ(_num_free_blocks(), 40); // p (order-1) still used
 
     sfree(p);
     VERIFY_CLEAN();
+}
+
+// Exercise both sides of every buddy-order payload boundary.  The largest
+// payload that fits order k must stay in place; one byte more must grow to
+// order k+1.  At order 10, that extra byte must cross from sbrk to mmap.
+static void test_srealloc_all_order_boundaries() {
+    for (size_t order = 0; order <= 10; order++) {
+        const size_t block_size = (size_t) 128 << order;
+        REQUIRE(block_size > META);
+
+        const size_t max_payload = block_size - META;
+        const size_t fill_n = max_payload < 64 ? max_payload : 64;
+        const unsigned char seed = (unsigned char) (110 + order);
+
+        char *p = (char *) smalloc(max_payload);
+        REQUIRE(p != NULL);
+        fill_pattern(p, fill_n, seed);
+
+        // Exact boundary and shrinking by one both reuse the current block.
+        CHECK(srealloc(p, max_payload) == p);
+        if (max_payload > 1) {
+            CHECK(srealloc(p, max_payload - 1) == p);
+        }
+        CHECK(pattern_ok(p, fill_n, seed));
+
+        char *q = (char *) srealloc(p, max_payload + 1);
+        REQUIRE(q != NULL);
+        if (order < 10) {
+            // The allocation starts as the left buddy and can grow in place.
+            CHECK(q == p);
+        } else {
+            // No buddy order exists above 10, so growth relocates to mmap.
+            CHECK(q != p);
+        }
+        CHECK(pattern_ok(q, fill_n, seed));
+
+        sfree(q);
+        VERIFY_CLEAN();
+    }
 }
 
 static void test_srealloc_mmap() {
@@ -811,6 +864,7 @@ int main() {
         {"Test 24: invalid mmap srealloc preserves block",          test_srealloc_mmap_invalid_preserves_block},
         {"Test 25: heap exhaustion + no extra sbrk",                test_exhaustion},
         {"Test 26: alloc/free stress with pattern verification",    test_stress_integrity},
+        {"Test 27: srealloc boundaries for every buddy order",      test_srealloc_all_order_boundaries},
     };
     const int total = sizeof(tests) / sizeof(tests[0]);
 
