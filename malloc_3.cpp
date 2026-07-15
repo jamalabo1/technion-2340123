@@ -18,7 +18,6 @@
 
 using std::uintptr_t;
 
-// this lives on the bbs so am ok.
 static bool has_been_inited = false;
 // 2^22
 constexpr uintptr_t alignment = uintptr_t(1) << 22;
@@ -33,38 +32,45 @@ uintptr_t to_uptr(void *ptr) {
     return reinterpret_cast<uintptr_t>(ptr);
 }
 
-// int ceilLog2(int x) {
-//     if (x <= 1) return 0;
-//
-//     // how many leading zeros
-//     int msb = 63 - __builtin_clz(x);
-//
-//     // if x is an exact power of 2, the MSB is the final answer
-//     // otherwise, increment by 1
-//     return msb + ((x & (x - 1)) != 0);
-// }
-//
-// size_t blk_order(size_t size) {
-//     return std::max(
-//         0,
-//         ceilLog2(size) - 7
-//     );
-// }
-
-//TODO: make it bitwise later
-size_t blk_order(size_t total_size) {
-    size_t order = 0;
-    size_t capacity = MIN_BLOCK_SIZE;
-
-    while (capacity < total_size) {
-        capacity <<= 1;
-        ++order;
+static unsigned ceilLog2(uint64_t x)
+{
+    if (x <= 1) {
+        return 0;
     }
 
-    return order;
+    // ceil(log2(x)) = floor(log2(x - 1)) + 1
+    const uint64_t value = x - 1;
+    uint64_t msb;
+
+    // so the easier binary way to ceil log is just to ask for the first msb bit and shift it.
+    asm (
+        "bsrq %1, %0"
+        : "=r" (msb)
+        : "r"  (value)
+        : "cc"
+    );
+
+    return static_cast<unsigned>(msb + 1);
+}
+
+static size_t blk_order(std::size_t size)
+{
+    // so since the base is 2^7 might as well just take it out, and since I want x such that
+    // 2^{x-1} <= size < 2^
+    // then I can use ceil log, since it's log_2(x) then round to the near integer.
+
+    const unsigned log = ceilLog2(size);
+
+    return log > 7
+        ? static_cast<std::size_t>(log - 7)
+        : 0;
 }
 
 class MallocMetaData {
+private:
+    bool _is_free;
+    int _order;
+
 public:
     // free list
     static MallocMetaData *free_order_array[MAX_ORDER + 1];
@@ -72,12 +78,14 @@ public:
     static MallocMetaData *mmap_list;
 
 
-    size_t order;
-    bool is_free;
+    // although everything is size_t, the maximal number this field can hold is MAX_SIZE,
+    // which has ceil(log(..)) = 27, therefore it fits in 32 bits int, so it saves us 4 bytes theoritical
+    // but actually 8 because of alignment
     MallocMetaData *next;
     MallocMetaData *prev;
 
     /* */
+
 
 
     static MallocMetaData *from_raw_ptr(uintptr_t ptr) {
@@ -188,7 +196,6 @@ public:
         this->next = nullptr;
 
         if (head == nullptr || this->as_uptr() < head->as_uptr()) {
-            // wethere its there or ntoe
             this->next = head;
 
             if (head != nullptr) {
@@ -300,7 +307,7 @@ void *smalloc(size_t size) {
         // this is where it starts
         buddy_start = to_uptr(base_ptr);
 
-        // then create all the blocks in the order 10 bucket
+        // then create all the blocks in the order 10 buckets since this is were they initialy be at.
         uintptr_t current_ptr = buddy_start;
 
         for (int i = 0; i < BLOCK_NUM; i++) {
@@ -335,7 +342,7 @@ void *smalloc(size_t size) {
             return nullptr;
         }
 
-        // setting order is mmap
+        // setting order is flaging as mmap
         MallocMetaData *metadata = MallocMetaData::init_raw_ptr(ptr, rblk_size);
         metadata->is_free = false;
 
@@ -586,7 +593,7 @@ void *srealloc(void *oldp, size_t size) {
     // although I'm doing a minimum on the copy size, which is always if reaches here has size > old_size for the
     // non mmap case, i'll keep it for clarity.
 
-    // this shouldnt be the case since it's provided no type crossing but anyway this is the solution
+    // this shouldn't be the case since it's provided no type crossing but anyway this is the solution
     if (target_order > MAX_ORDER) {
         return srealloc_user(oldp, size, copy_size);
     }
@@ -602,7 +609,6 @@ void *srealloc(void *oldp, size_t size) {
         if (
             buddy->is_free
             &&
-            //TODO: check is buddy formally defined as someone with the same size?
             buddy->order == order
         ) {
             // pick left
@@ -617,11 +623,11 @@ void *srealloc(void *oldp, size_t size) {
     }
     // then yes I could've merged so lets use it
     if (order == target_order) {
-        // this swallows or retroactily "merges" every block but we need to remove them from the list
+        // this swallows or retroactily "merges" every block, but we need to remove them from the list
         // in which buddy_merge will do
 
 
-        // in a sane model I would've keept the buddy list but we are limited on memory so we'll just merge again
+        // in a regular model I would've keept the buddy list, but we are limited on memory so we'll just merge again
         cur = buddy_merge(blk, target_order);
 
         // now after merging i'm going to return maybe a different base pointer, so I need to copy the original data
@@ -634,7 +640,7 @@ void *srealloc(void *oldp, size_t size) {
 
         cur->is_free = false;
         // since we defined target_order as the minimum of possible size, and we know we can merge
-        // this field shoud've been at this value even before we set it because that what buddy merge shouldve done.
+        // this field shoud've been at this value even before we set it because that what buddy merge should've done.
         cur->order = target_order;
 
 
@@ -658,6 +664,7 @@ AllocatorStats collect_stats() {
     AllocatorStats stats;
 
     if (has_been_inited) {
+        // this is always a valid buddy, so it's not garbage data to be read and it's an actual metadata.
         uintptr_t current_address = buddy_start;
 
         while (current_address < buddy_end) {
