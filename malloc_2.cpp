@@ -60,7 +60,7 @@ public:
 static MallocMetaData *first_block = nullptr;
 
 void *smalloc(size_t size) {
-    // for now a naive search in O(n). will make it O(log(n)) with AVL implementation on these pointers.
+    // for now a naive search in O(n). maybe make it O(log(n)) with AVL implementation on these pointers later.
     if (size == 0 || size > MAX_SIZE) {
         return nullptr;
     }
